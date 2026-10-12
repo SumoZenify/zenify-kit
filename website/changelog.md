@@ -8,6 +8,14 @@ Mỗi release một mục, viết cho người dùng kit, không phải danh sá
 
 Bản trước `v0.22.0`: xem [GitHub Releases](https://github.com/ZenifyAIContactCenter/zenify-kit/releases).
 
+## v0.31.1
+
+*2026-10-12*
+
+- `zenify up` ghim gói MCP Playwright ở `@playwright/mcp@0.0.83` và cài Chromium qua đúng gói đó, nên revision trình duyệt luôn khớp với MCP và chỉ tải lại khi kit nâng pin. Trước đây `up` đăng ký `@latest` rồi cài Chromium bằng một playwright khác, có ngày tải gần 600 MB mà MCP không dùng được.
+- Registration cũ (`@latest` hoặc pin cũ, đúng cờ của kit) được `up` tự chuyển sang pin mới; registration có cờ riêng của bạn vẫn giữ nguyên. `zenify doctor` báo `mcp=legacy-default` cho tới khi chạy `up`.
+- Tiến trình tải Chromium và output của `claude mcp add` / `codex mcp add` hiện thẳng trên terminal, không còn một dòng đứng yên nhiều phút.
+
 ## v0.31.0
 
 *2026-10-12*
