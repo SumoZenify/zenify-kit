@@ -1,6 +1,6 @@
 ---
 name: research
-description: Deep research with verified citations. Use when a design depends on an external library, framework, tool or API whose docs were not read this session; on how others solve the problem (prior art, community practice, competitor products); on facts that go stale (latest, current, version, pricing, release notes); or when two genuinely different approaches need evidence before choosing. Runs as a forked lead that dispatches znf:researcher workers, re-verifies every URL, and writes the report to docs/reference/ — the caller receives at most 40 lines. Not for in-repo names or DB shapes; use /znf:ground or /znf:scout for those.
+description: Deep research with verified citations. Use when a design depends on an external library, framework, tool or API whose docs were not read this session; on how others solve the problem (prior art, community practice, competitor products); on facts that go stale (latest, current, version, pricing, release notes); or when two genuinely different approaches need evidence before choosing. Runs as a forked lead that dispatches znf:researcher workers, re-verifies every URL, and writes the report to docs/research/<repo>/ — the caller receives at most 40 lines. Not for in-repo names or DB shapes; use /znf:ground or /znf:scout for those.
 argument-hint: "<question> [repo: <feature-repo>]"
 allowed-tools: Read Write Bash(mkdir *) Bash(date *) Agent
 context: fork
@@ -75,7 +75,7 @@ Run it even for a single worker. A miss here is cheap: the flag stays visible in
 ## Step 4: Synthesize
 
 Read every `worker-<n>.md` and `verify.md` (use `offset` + `limit` above 200 KB). Write
-`docs/reference/<repo>/YYYY-MM-DD-<slug>.md` (`date +%F`) in the project's prose language,
+`docs/research/<repo>/YYYY-MM-DD-<slug>.md` (`date +%F`) in the project's prose language,
 following `znf:_shared/artifact-style` — header as `**Label:** value` lines, then:
 
 1. **Question** — the sentence, the done-criterion, the scope block.
@@ -85,7 +85,8 @@ following `znf:_shared/artifact-style` — header as `**Label:** value` lines, t
 4. **Not found** — every gap and what was tried.
 5. **Conclusion** — from `VERIFIED` rows only, at most 10 lines; name what stays open.
 
-Do not commit and do not run git: the knowledge store syncs itself. Leave the temp directory.
+The file stays local; brainstorming moves it to `docs/reference/<repo>/` only when the spec links it.
+Do not commit and do not run git. Leave the temp directory.
 
 ## Step 5: Return — at most 40 lines
 

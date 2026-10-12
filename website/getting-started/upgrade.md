@@ -64,6 +64,5 @@ Cơ chế nhắc ở đầu session chỉ có từ `v0.17.7`. Nếu binary trên
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `zenify update --help`
-- `docs/handoff/zenify-kit/update-and-version-gate.md`
 - `README.md` (repo `zenify-kit`, mục "Staying current")
 -->

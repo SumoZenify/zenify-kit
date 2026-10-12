@@ -89,7 +89,7 @@ always   verify with real output before saying it works
 
 - Independent sub-questions → **spawn parallel agents proactively, one message.** Scale the count to complexity (fact-find = 1 · comparison = 2–4 · complex = 3–5+); fan out only when value beats the token cost.
 - Track each dispatch by name and collect each (rule #3): silence ≠ a clean result.
-- **Cap the return**: every dispatch names it — at most 40 lines back; tables, long lists and logs go to a file (scratchpad or `docs/reference`) and the reply carries the path.
+- **Cap the return**: every dispatch names it — at most 40 lines back; tables, long lists and logs go to a file (scratchpad or `docs/research/<repo>/`) and the reply carries the path.
 
 > Full triggers and the fan-out evidence: `references/external-facts-and-fanout.md`.
 

@@ -122,6 +122,5 @@ Khi có task thật, xem [Chọn workflow](/workflows/) để biết nên dùng 
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `zenify up --help`, `zenify doctor --help`
-- `docs/handoff/zenify-kit/onboarding-tui.md` (luồng wizard Preflight, Identity, Discover, Select, Scan, Plan, Apply, Verify/Done)
 - `README.md` (repo `zenify-kit`, mục "After install")
 -->

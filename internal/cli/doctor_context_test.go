@@ -142,3 +142,49 @@ func TestHasPathsFrontmatter(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkspaceRootCheck(t *testing.T) { // SC-14
+	ws := t.TempDir()
+	for _, d := range []string{"repos", "docs/specs", "docs/research", ".claude", ".zenify", ".znf", "docs/.claude"} {
+		os.MkdirAll(filepath.Join(ws, d), 0o755)
+	}
+	writeF(t, filepath.Join(ws, "foo.png"), "x")
+	writeF(t, filepath.Join(ws, "CLAUDE.md"), "x")
+	os.MkdirAll(filepath.Join(ws, "docs", "handoffs"), 0o755)
+	ok, d := workspaceRootCheck(ws).Run()
+	if ok || !strings.Contains(d, "foo.png") || !strings.Contains(d, "docs/handoffs") || !strings.Contains(d, ".znf") || strings.Contains(d, "docs/.claude") {
+		t.Fatalf("ok=%v %q", ok, d)
+	}
+	os.Remove(filepath.Join(ws, "foo.png"))
+	os.Remove(filepath.Join(ws, "docs", "handoffs"))
+	os.Remove(filepath.Join(ws, ".znf"))
+	if ok, d := workspaceRootCheck(ws).Run(); !ok {
+		t.Fatalf("after cleanup: %q", d)
+	}
+}
+
+func TestMemoryIndexCheck(t *testing.T) {
+	ws := t.TempDir()
+	if ok, d := memoryIndexCheck(ws).Run(); !ok || d != "không có MEMORY.md" { //znf:allow-lang
+		t.Fatal(d)
+	}
+	writeF(t, filepath.Join(ws, ".claude/memory/MEMORY.md"), strings.Repeat("x\n", 185))
+	if ok, d := memoryIndexCheck(ws).Run(); ok || !strings.Contains(d, "185") || !strings.Contains(d, "200") {
+		t.Fatalf("ok=%v %q", ok, d)
+	}
+	writeF(t, filepath.Join(ws, ".claude/memory/MEMORY.md"), strings.Repeat(strings.Repeat("x", 67)+"\n", 150))
+	if ok, _ := memoryIndexCheck(ws).Run(); !ok {
+		t.Fatal("150 lines / 10 KB must be ok")
+	}
+}
+
+func TestWorkspaceRootCheck_OverlayRepoRootNotFlagged(t *testing.T) {
+	ws := t.TempDir()
+	os.MkdirAll(filepath.Join(ws, "elsewhere", "a"), 0o755)
+	os.MkdirAll(filepath.Join(ws, "stray"), 0o755)
+	writeF(t, filepath.Join(ws, ".zenify-overlay.yaml"), "repos:\n  - name: contact-center-be\n    path: elsewhere/a\n")
+	ok, d := workspaceRootCheck(ws).Run()
+	if ok || strings.Contains(d, "elsewhere") || !strings.Contains(d, "stray") {
+		t.Fatalf("ok=%v %q", ok, d)
+	}
+}

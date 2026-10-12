@@ -46,6 +46,4 @@ Hệ quả: sau khi sửa tay một file, bạn không còn nhận bản vá ti�
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `internal/plugin/assets/znf/skills/discipline/SKILL.md` (bố cục plugin)
-- `docs/handoff/zenify-kit/m2-plugin-skills.md` (`zenify skills sync` additive và refresh-safe: cập nhật file chưa sửa tay, giữ nguyên file đã sửa tay)
-- `docs/handoff/zenify-kit/docs-sync-layer.md` (lớp knowledge store, agent là writer duy nhất)
 -->

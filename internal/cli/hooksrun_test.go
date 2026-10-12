@@ -165,3 +165,16 @@ func TestHooksRun_WtReportSilentWhenNothing(t *testing.T) {
 		t.Fatalf("expected silence, got %q", buf.String())
 	}
 }
+
+func TestHooksRun_WriteGuardBypassesWorkspaceGuard(t *testing.T) {
+	old := writeGuardRun
+	writeGuardRun = func() int { return 2 }
+	t.Cleanup(func() { writeGuardRun = old })
+	var buf bytes.Buffer
+	if code := dispatchHook("write-guard", "", &buf); code != 2 {
+		t.Fatalf("code = %d, want 2 (write-guard must run with wsRoot == \"\")", code)
+	}
+	if buf.Len() != 0 {
+		t.Fatalf("must not print {} on deny: %q", buf.String())
+	}
+}

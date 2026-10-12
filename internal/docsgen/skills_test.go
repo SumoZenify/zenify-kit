@@ -213,11 +213,17 @@ func TestGenHooks_RuntimeColumn(t *testing.T) {
 		if strings.Contains(line, "hooks-run read-guard") && (!strings.HasSuffix(line, "| Claude |") || strings.Contains(line, "Codex")) {
 			t.Errorf("read-guard row must be Claude-only: %s", line)
 		}
+		if strings.Contains(line, "hooks-run write-guard") && (!strings.HasSuffix(line, "| Claude |") || strings.Contains(line, "Codex")) {
+			t.Errorf("write-guard row must be Claude-only: %s", line)
+		}
 		if strings.Contains(line, "hooks-run docs-sync") && !strings.HasSuffix(line, "| Claude, Codex |") {
 			t.Errorf("docs-sync row must be Claude, Codex: %s", line)
 		}
 	}
 	if !strings.Contains(h, "hooks-run read-guard") {
 		t.Error("read-guard row missing")
+	}
+	if !strings.Contains(h, "hooks-run write-guard") {
+		t.Error("write-guard row missing")
 	}
 }

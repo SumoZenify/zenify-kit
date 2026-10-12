@@ -87,7 +87,7 @@ func TestResearchSkill_Shipped(t *testing.T) {
 		"mode: verify",
 		"znf-research-",
 		"verify.md",
-		"docs/reference/",
+		"docs/research/",
 		"not found",
 		"40 lines",
 		"references/output-contract.md",

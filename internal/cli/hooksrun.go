@@ -15,12 +15,20 @@ import (
 // internal/wt can use it without importing cli).
 func findWorkspaceRoot(start string) (string, bool) { return wt.FindWorkspaceRoot(start) }
 
+// writeGuardRun is the write-guard entry point; a var so tests can stub it.
+var writeGuardRun = func() int { return runWriteGuard(os.Stdin, os.Stderr, wt.FindWorkspaceRoot) }
+
 // dispatchHook runs the action for id within workspace wsRoot. Every id
-// returns 0 (fail-open) except read-guard, which returns 2 to deny a Read the
-// harness would otherwise let through; a hook must never make CC report an
-// error for any other reason. wsRoot == "" means "outside a workspace" => no-op.
+// returns 0 (fail-open) except read-guard and write-guard, which return 2 to
+// deny a Read/Write the harness would otherwise let through; a hook must never
+// make CC report an error for any other reason. wsRoot == "" means "outside a
+// workspace" => no-op, except for write-guard, which runs first because it
+// derives the workspace from the target file path, not from the hook's cwd.
 func dispatchHook(id, wsRoot string, w io.Writer) int {
 	noop := func() int { fmt.Fprintln(w, "{}"); return 0 }
+	if id == "write-guard" {
+		return writeGuardRun()
+	}
 	if wsRoot == "" {
 		return noop()
 	}
@@ -57,7 +65,7 @@ func newHooksRunCmd() *cobra.Command {
 			wsRoot, _ := findWorkspaceRoot(cwd)
 			code := dispatchHook(args[0], wsRoot, cmd.OutOrStdout())
 			if code != 0 {
-				os.Exit(code) // read-guard deny (2); every other id is 0
+				os.Exit(code) // read-guard/write-guard deny (2); every other id is 0
 			}
 			return nil
 		},

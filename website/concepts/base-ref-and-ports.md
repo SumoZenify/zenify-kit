@@ -64,6 +64,5 @@ Repo không khai báo gì vẫn nhận branch tích hợp làm base mà không b
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `.claude/worktree.json` (repo `zenify-kit`, đọc trực tiếp)
 - `./zenify wt config --help`
-- `docs/handoff/zenify-kit/m2-plugin-skills.md` (`hotfix.baseStrategy`, `zenify hotfix baseref`, port range 50-port/repo)
 - `internal/plugin/assets/znf/skills/discipline/SKILL.md` §8 (base là fact khai báo, hotfix resolve sau fetch)
 -->

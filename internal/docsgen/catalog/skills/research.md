@@ -1,5 +1,5 @@
 ---
-summary: Research có kiểm chứng: worker tìm và trích dẫn nguyên văn kèm URL đã fetch, một lượt haiku fetch lại mọi URL, kết quả ghi thành file trong docs/reference.
+summary: Research có kiểm chứng: worker tìm và trích dẫn nguyên văn kèm URL đã fetch, một lượt haiku fetch lại mọi URL, kết quả ghi thành file trong docs/research (local, không sync).
 ---
 ## Khi nào dùng
 
@@ -12,7 +12,7 @@ Skill chạy tách khỏi phiên chính (`context: fork`): phiên chính chỉ n
 1. **Scope.** Viết lại câu hỏi và tiêu chí "trả lời xong là gì"; tách câu hỏi con theo ranh giới nguồn (một họ tài liệu, một hệ thống cho mỗi worker); chọn cỡ 1 / 2–4 / 5+ worker và cap số lần gọi tool. Khối scope này mở đầu báo cáo và phần trả về, thay cho bước duyệt kế hoạch — skill chạy fork nên không hỏi được.
 2. **Dispatch.** Mỗi câu hỏi con một agent `znf:researcher` (sonnet), gửi trong một tin nhắn. Worker ghi toàn bộ vào file tạm và chỉ trả về vài dòng đếm. Worker im lặng được dispatch lại một lần, rồi ghi là khoảng trống.
 3. **Verify.** Một `znf:researcher` mode `verify` (haiku) fetch lại mọi URL, so quote với trang, gắn cờ `VERIFIED` / `QUOTE-MISMATCH` / `DEAD-URL` / `NOT-FETCHED`.
-4. **Tổng hợp.** Lead đọc file worker và file verify, viết `docs/reference/<repo>/YYYY-MM-DD-<slug>.md`: câu hỏi, cách làm, bảng claim kèm URL và trạng thái verify, mục "không tìm thấy", kết luận chỉ từ hàng đã verify.
+4. **Tổng hợp.** Lead đọc file worker và file verify, viết `docs/research/<repo>/YYYY-MM-DD-<slug>.md`: câu hỏi, cách làm, bảng claim kèm URL và trạng thái verify, mục "không tìm thấy", kết luận chỉ từ hàng đã verify.
 5. **Trả về.** Đường dẫn file, khối scope, số đếm verified / flagged / not found, kết luận tối đa 5 dòng.
 
 ## Được gọi từ đâu
@@ -21,4 +21,4 @@ Gọi tay `/znf:research <câu hỏi> repo: <repo>`, hoặc tự động từ `/
 
 ## Lưu ý
 
-Mọi claim không có URL đã fetch trong lượt chạy là không hợp lệ — worker không được trích từ trí nhớ. Skill không commit, không chạy git trong knowledge store (kit tự sync). Chi phí một lượt so sánh ba worker khoảng 5–6 USD; xem bảng cỡ trong reference của skill.
+Mọi claim không có URL đã fetch trong lượt chạy là không hợp lệ — worker không được trích từ trí nhớ. Skill không commit, không chạy git. Chi phí một lượt so sánh ba worker khoảng 5–6 USD; xem bảng cỡ trong reference của skill.

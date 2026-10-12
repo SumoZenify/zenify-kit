@@ -20,7 +20,7 @@ Sau khi PR đã merge, hoặc định kỳ khi workspace tích nhiều worktree 
 
 ## Kết quả
 
-Với mỗi worktree, lệnh quyết định gỡ hay giữ và in lý do. Chỉ gỡ worktree do `wt` tạo, đang ở branch thật, branch đã có dấu vết merge trong base và cây làm việc sạch. Trước khi gỡ, nó dừng dev server đang giữ port của worktree đó. Mục state trỏ tới thư mục đã mất cũng được dọn. Cuối cùng in `wt: swept N, left M`.
+Với mỗi worktree, lệnh quyết định gỡ hay giữ và in lý do. Chỉ gỡ worktree do `wt` tạo, đang ở branch thật, branch đã có dấu vết merge trong base và cây làm việc sạch. Trước khi gỡ, nó dừng dev server đang giữ port của worktree đó. Mục state trỏ tới thư mục đã mất cũng được dọn. Cuối cùng in `wt: swept N, left M`. Dọn xong, lệnh chạy tiếp `zenify docs sweep` (không fetch): với `--dry-run` chỉ in kế hoạch, không có thì `--apply`.
 
 ## Cờ
 

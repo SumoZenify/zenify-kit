@@ -55,3 +55,36 @@ func TestResolveAutoDetect(t *testing.T) {
 		t.Fatalf("got=%v err=%v", got, err)
 	}
 }
+
+func pathReader(files map[string]string) func(string) ([]byte, error) {
+	return func(p string) ([]byte, error) {
+		if s, ok := files[p]; ok {
+			return []byte(s), nil
+		}
+		return nil, errors.New("no file")
+	}
+}
+
+func TestPinList_ReadsZenifyDir(t *testing.T) {
+	got, ok := pinList("/ws", pathReader(map[string]string{"/ws/.zenify/release-repos.txt": "chatting\n"}))
+	if !ok || len(got) != 1 || got[0] != "chatting" {
+		t.Fatalf("got=%v ok=%v", got, ok)
+	}
+}
+
+func TestPinList_LegacyZnfStillRead(t *testing.T) {
+	got, ok := pinList("/ws", pathReader(map[string]string{"/ws/.znf/release-repos.txt": "chatting\n"}))
+	if !ok || len(got) != 1 || got[0] != "chatting" {
+		t.Fatalf("legacy .znf must still be read: got=%v ok=%v", got, ok)
+	}
+}
+
+func TestPinList_ZenifyWinsOverZnf(t *testing.T) {
+	got, ok := pinList("/ws", pathReader(map[string]string{
+		"/ws/.zenify/release-repos.txt": "new-repo\n",
+		"/ws/.znf/release-repos.txt":    "old-repo\n",
+	}))
+	if !ok || len(got) != 1 || got[0] != "new-repo" {
+		t.Fatalf(".zenify must win: got=%v ok=%v", got, ok)
+	}
+}

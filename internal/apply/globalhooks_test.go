@@ -419,3 +419,64 @@ func TestEnsureGlobalHooks_ReadGuardWired(t *testing.T) {
 		t.Fatalf("second run must be idempotent: %+v %v", ch, err)
 	}
 }
+
+// SC-13: after EnsureGlobalHooks, PreToolUse holds exactly one
+// Write|Edit|NotebookEdit group with the write-guard command, and a second run
+// adds nothing.
+func TestEnsureGlobalHooks_WriteGuardWired(t *testing.T) {
+	home := t.TempDir()
+	if _, err := EnsureGlobalHooks(home, false); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(home, ".claude", "settings.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root struct {
+		Hooks map[string][]struct {
+			Matcher string `json:"matcher"`
+			Hooks   []struct {
+				Command string `json:"command"`
+			} `json:"hooks"`
+		} `json:"hooks"`
+	}
+	if err := json.Unmarshal(raw, &root); err != nil {
+		t.Fatal(err)
+	}
+	var cmds []string
+	for _, g := range root.Hooks["PreToolUse"] {
+		if g.Matcher != "Write|Edit|NotebookEdit" {
+			continue
+		}
+		for _, h := range g.Hooks {
+			cmds = append(cmds, h.Command)
+		}
+	}
+	if len(cmds) != 1 || cmds[0] != "zenify hooks-run write-guard" {
+		t.Fatalf("Write|Edit|NotebookEdit group = %v, want exactly [zenify hooks-run write-guard]", cmds)
+	}
+	ch, err := EnsureGlobalHooks(home, false)
+	if err != nil || ch.Added != 0 || ch.Updated != 0 {
+		t.Fatalf("second run must be idempotent: %+v %v", ch, err)
+	}
+}
+
+// write-guard is Claude-only: Codex drops it and keeps its 7 entries.
+func TestCodexEntries_DropsWriteGuard(t *testing.T) {
+	var claudeHas bool
+	for _, s := range znfHookSpecs() {
+		claudeHas = claudeHas || s.ID == "write-guard"
+	}
+	if !claudeHas {
+		t.Fatal("znfHookSpecs must contain write-guard")
+	}
+	got := codexEntries(znfHookSpecs())
+	for _, s := range got {
+		if s.ID == "write-guard" {
+			t.Fatalf("codexEntries must drop write-guard: %+v", got)
+		}
+	}
+	if len(got) != 7 {
+		t.Fatalf("codexEntries len = %d, want 7", len(got))
+	}
+}

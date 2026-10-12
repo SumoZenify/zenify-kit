@@ -18,8 +18,9 @@ and wait for its return. **None true → skip**, and do not write a prior-art se
 
 ## Using the result
 
-`znf:research` returns at most 40 lines and a file under `docs/reference/<repo>/`. Link that file
-from the Brief's Approach field, quote only rows the verifier marked `VERIFIED`, and carry every
+`znf:research` returns at most 40 lines and a file under `docs/research/<repo>/` (local, not synced).
+When the spec cites it in `Liên quan:` or Approach, `mv` it to `docs/reference/<repo>/` with the same name
+and link the store path; a file no spec links stays in `research/`. Quote only rows the verifier marked `VERIFIED`, and carry every
 `not found` into the spec as a stated assumption. A claim flagged `QUOTE-MISMATCH` or `DEAD-URL`
 does not enter the spec.
 
