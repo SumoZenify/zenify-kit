@@ -91,3 +91,16 @@ func writeFile(t *testing.T, path, body string) {
 		t.Fatal(err)
 	}
 }
+
+func TestSummarizeByRuntime(t *testing.T) {
+	s := Summarize([]Record{{Runtime: "codex"}, {Runtime: "claude"}, {}})
+	want := map[string]int{"codex": 1, "claude": 1, "unknown": 1}
+	if len(s.ByRuntime) != 3 {
+		t.Fatalf("ByRuntime = %v, want %v", s.ByRuntime, want)
+	}
+	for k, v := range want {
+		if s.ByRuntime[k] != v {
+			t.Fatalf("ByRuntime = %v, want %v", s.ByRuntime, want)
+		}
+	}
+}

@@ -15,16 +15,16 @@ func TestRunRouteLogRecord_WritesThenFailOpen(t *testing.T) {
 	dirFn := func() (string, error) { return dir, nil }
 	rec := `{"ts":"2026-09-21T01:00:00Z","repo":"kit","branch":"b","site":"architect","features":{"TIER":"architectural","SHARED":"1"},"gates":["SHARED"],"model":"opus","strong":"opus","changed_decision":"yes"}`
 	var errb bytes.Buffer
-	if err := runRouteLogRecord(strings.NewReader(rec), &errb, dirFn); err != nil {
+	if err := runRouteLogRecord(strings.NewReader(rec), &errb, dirFn, os.Getenv); err != nil {
 		t.Fatalf("valid record: %v", err)
 	}
-	if err := runRouteLogRecord(strings.NewReader(""), &errb, dirFn); err != nil {
+	if err := runRouteLogRecord(strings.NewReader(""), &errb, dirFn, os.Getenv); err != nil {
 		t.Fatalf("empty must be nil: %v", err)
 	}
-	if err := runRouteLogRecord(strings.NewReader("{bad"), &errb, dirFn); err != nil {
+	if err := runRouteLogRecord(strings.NewReader("{bad"), &errb, dirFn, os.Getenv); err != nil {
 		t.Fatalf("malformed must be nil: %v", err)
 	}
-	if err := runRouteLogRecord(strings.NewReader(rec), &errb, func() (string, error) { return "", os.ErrNotExist }); err != nil {
+	if err := runRouteLogRecord(strings.NewReader(rec), &errb, func() (string, error) { return "", os.ErrNotExist }, os.Getenv); err != nil {
 		t.Fatalf("dir error must be nil: %v", err)
 	}
 	recs, _ := routelog.LoadRecords(dir)
@@ -114,4 +114,44 @@ func TestRouteLogCmd_RecordPlanWithoutFlag_ExitsZero(t *testing.T) {
 	if err := c.Execute(); err != nil {
 		t.Fatalf("record-plan without --plan must stay best-effort (exit 0): %v", err)
 	}
+}
+
+func TestRuntimeFromEnvOrder(t *testing.T) {
+	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+	if got := runtimeFromEnv(env(map[string]string{"CODEX_THREAD_ID": "1", "CLAUDECODE": "1"})); got != "codex" {
+		t.Fatalf("both set: got %q, want codex", got)
+	}
+	if got := runtimeFromEnv(env(map[string]string{"CLAUDECODE": "1"})); got != "claude" {
+		t.Fatalf("claude only: got %q, want claude", got)
+	}
+	if got := runtimeFromEnv(env(nil)); got != "unknown" {
+		t.Fatalf("none: got %q, want unknown", got)
+	}
+}
+
+func TestRouteLogRecordRuntimeOverridesPayload(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "rl")
+	dirFn := func() (string, error) { return dir, nil }
+	getenv := func(k string) string {
+		if k == "CODEX_THREAD_ID" {
+			return "1"
+		}
+		return ""
+	}
+	var errb bytes.Buffer
+	if err := runRouteLogRecord(strings.NewReader(`{"ts":"2026-10-12T01:00:00Z","site":"x","runtime":"claude"}`), &errb, dirFn, getenv); err != nil {
+		t.Fatal(err)
+	}
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		b, _ := os.ReadFile(filepath.Join(dir, e.Name()))
+		if !strings.Contains(string(b), `"runtime":"codex"`) {
+			t.Fatalf("record = %s, want runtime codex", b)
+		}
+		return
+	}
+	t.Fatal("no record written")
 }
