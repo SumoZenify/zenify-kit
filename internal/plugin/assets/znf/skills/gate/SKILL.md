@@ -5,7 +5,7 @@ argument-hint: "[collection | channel | endpoint | queue name]"
 allowed-tools: Grep Read Bash(grep *) Bash(rg *) Bash(zenify *) Agent
 ---
 
-Verify the shared resource: **$ARGUMENTS** (if no argument was passed, verify the shared resource you just edited).
+Verify the shared resource named by the argument (default: the one you just edited). The argument is the text after the skill name.
 
 Tool names for each action: `znf:_shared/harness-tools` (harness mapping table).
 
@@ -27,7 +27,7 @@ Sweep against **this output**, not any list written into this file — a repo th
 the kind of participant that goes missing from a hand-maintained list and breaks first. Full
 sourcing details: `references/escalation-and-fanout.md`.
 
-**Grepping `$ARGUMENTS` alone finds the definition site and nothing else.** The resource
+**Grepping the resource name alone finds the definition site and nothing else.** The resource
 literal appears once per repo; every reader reaches it through a model/registry symbol. Do
 three passes per repo, using that repo's `accessPatterns` to know which of these apply:
 

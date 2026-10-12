@@ -19,7 +19,7 @@ import (
 func defaultRouteLogDir() (string, error) { return znfStoreDir(gitCommonDirRun, "route-log") }
 
 // runRouteLogRecord: stdin = Record JSON → store. Best-effort, always nil (never blocks a skill).
-func runRouteLogRecord(stdin io.Reader, stderr io.Writer, dirFn func() (string, error)) error {
+func runRouteLogRecord(stdin io.Reader, stderr io.Writer, dirFn func() (string, error), getenv func(string) string) error {
 	data, err := io.ReadAll(stdin)
 	if err != nil || len(bytes.TrimSpace(data)) == 0 {
 		return nil
@@ -29,6 +29,7 @@ func runRouteLogRecord(stdin io.Reader, stderr io.Writer, dirFn func() (string, 
 		fmt.Fprintln(stderr, "route-log record: JSON hỏng, bỏ qua:", err) //znf:allow-lang
 		return nil
 	}
+	r.Runtime = runtimeFromEnv(getenv)
 	dir, err := dirFn()
 	if err != nil {
 		fmt.Fprintln(stderr, "route-log record: không resolve store, bỏ qua:", err) //znf:allow-lang
@@ -75,6 +76,17 @@ func runRouteLogRecordPlan(planPath string, fanin int, stderr io.Writer, dirFn f
 		fmt.Fprintln(stderr, "route-log record-plan: ghi lỗi, bỏ qua:", err) //znf:allow-lang
 	}
 	return nil
+}
+
+// runtimeFromEnv names the agent runtime driving this process: codex, claude, or unknown.
+func runtimeFromEnv(getenv func(string) string) string {
+	switch {
+	case getenv("CODEX_THREAD_ID") != "":
+		return "codex"
+	case getenv("CLAUDECODE") != "":
+		return "claude"
+	}
+	return "unknown"
 }
 
 func strongFromEnv() string {
@@ -168,6 +180,15 @@ func runRouteLogShow(stdout, stderr io.Writer, asJSON bool, since string, dirFn 
 		mt = ui.StatusWarn
 	}
 	f.Line(mt, "manual without trigger", fmt.Sprintf("%d", s.ManualNoTrigger))
+	runtimes := make([]string, 0, len(s.ByRuntime))
+	for k := range s.ByRuntime {
+		runtimes = append(runtimes, k)
+	}
+	sort.Strings(runtimes)
+	f.Group(ui.MarkerDone, "Runtime")
+	for _, k := range runtimes {
+		f.Line(ui.StatusInfo, k, fmt.Sprintf("%d", s.ByRuntime[k]))
+	}
 	f.Close(fmt.Sprintf("%d route(s) logged", s.Total))
 	return nil
 }
@@ -189,7 +210,7 @@ func newRouteLogCmd() *cobra.Command {
 		Use: "record", Hidden: true, Args: cobra.NoArgs,
 		Short: "Ghi một route record (JSON qua stdin), best-effort", //znf:allow-lang
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runRouteLogRecord(cmd.InOrStdin(), cmd.ErrOrStderr(), defaultRouteLogDir)
+			return runRouteLogRecord(cmd.InOrStdin(), cmd.ErrOrStderr(), defaultRouteLogDir, os.Getenv)
 		},
 	}
 	var planPath string

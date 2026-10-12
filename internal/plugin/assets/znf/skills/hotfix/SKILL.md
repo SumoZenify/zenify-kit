@@ -6,7 +6,9 @@ argument-hint: "[short-kebab-desc]"
 allowed-tools: Bash(git *) Bash(wt *) Bash(zenify *) Read Grep Bash(rg *) Bash(cat *) Agent
 ---
 
-Hotfix: **$ARGUMENTS**
+Hotfix: **<slug>**
+
+`<slug>` is the text after the skill name.
 
 Tool names for each action: `znf:_shared/harness-tools` (harness mapping table).
 
@@ -68,7 +70,7 @@ confirmation, you were on the wide path all along.
    the `$REF` you resolved **after fetching** in step 2; same slug across repos so the branch name
    matches:
    ```bash
-   cd <repo> && wt new $ARGUMENTS --type hotfix --base "$REF"
+   cd <repo> && wt new <slug> --type hotfix --base "$REF"
    ```
    One worktree per affected repo. Do not re-derive `$REF` here — the value from step 2 is the
    one the user confirmed. `--type hotfix` is deliberately **exempt** from the
@@ -112,7 +114,7 @@ confirmation, you were on the wide path all along.
 10. **Remind the user of the remaining manual steps:** they create the PR against the resolved
     base ref by hand and merge it (= deploy), then **sync the fix back to the repo's normal
     feature base** (merge/cherry-pick) so the next release doesn't lose it. Once synced, tear
-    down each worktree with `wt rm $ARGUMENTS` (in each affected repo).
+    down each worktree with `wt rm <slug>` (in each affected repo).
 
 ## Output
 ```

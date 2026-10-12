@@ -37,6 +37,7 @@ type Record struct {
 	Tasks           int               `json:"tasks"`
 	Fanin           int               `json:"fanin"`
 	ThinkingTokens  int               `json:"thinking_tokens"`
+	Runtime         string            `json:"runtime,omitempty"` // codex|claude|unknown, set by the CLI from env
 }
 
 // Summary is what `zenify route-log` prints.
@@ -49,6 +50,7 @@ type Summary struct {
 	ArchitectDecided int                       `json:"architect_decided"` // architect records with a non-empty changed_decision
 	ArchitectChanged int                       `json:"architect_changed"` // of those, "yes"
 	ManualNoTrigger  int                       `json:"manual_no_trigger"`
+	ByRuntime        map[string]int            `json:"by_runtime"`
 }
 
 func sanitize(s string) string {
@@ -139,10 +141,15 @@ func LoadRecords(dir string) ([]Record, error) {
 
 // Summarize aggregates records for the report.
 func Summarize(recs []Record) Summary {
-	s := Summary{BySite: map[string]int{}, ModelBySite: map[string]map[string]int{}, GateFires: map[string]int{}}
+	s := Summary{BySite: map[string]int{}, ModelBySite: map[string]map[string]int{}, GateFires: map[string]int{}, ByRuntime: map[string]int{}}
 	for _, r := range recs {
 		s.Total++
 		s.BySite[r.Site]++
+		rt := r.Runtime
+		if rt == "" {
+			rt = "unknown"
+		}
+		s.ByRuntime[rt]++
 		if s.ModelBySite[r.Site] == nil {
 			s.ModelBySite[r.Site] = map[string]int{}
 		}

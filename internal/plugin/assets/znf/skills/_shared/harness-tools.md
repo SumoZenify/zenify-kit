@@ -16,18 +16,21 @@ Two rules for skill authors:
 
 ## Action → tool
 
-| Action | Claude Code | Other harness |
+| Action | Claude Code | Codex |
 |---|---|---|
-| Dispatch a subagent (fresh context, returns a report) | `Agent` (`subagent_type`, `model`, `prompt`) | — |
-| Invoke another kit skill | `Skill` (`znf:<name>`) | — |
-| Ledger of dispatched agents (one line each) | a file the skill names (SDD `progress.md`, ship board) — not `TodoWrite`/`TaskCreate`: each call is an extra API turn | — |
-| Ask the user to choose between options | `AskUserQuestion` | — |
-| Read a file / search text / find files | `Read` / `Grep` / `Glob` | — |
-| Edit or create a file | `Edit` / `Write` | — |
-| Run a shell command | `Bash` | — |
-| Fetch a page or search the web | `WebFetch` / `WebSearch` | — |
-| Drive a browser (UI verification) | `mcp__playwright__browser_*` via `znf:ui-verifier` | — |
-| Wait on a condition or a background process | `Monitor` | — |
+| Dispatch a subagent (fresh context, returns a report) | `Agent` (`subagent_type`, `model`, `prompt`) | `collaborationspawn_agent` with the same-named agent |
+| Invoke another kit skill | `Skill` (`znf:<name>`) | `$znf:<name>` |
+| Ledger of dispatched agents (one line each) | a file the skill names (SDD `progress.md`, ship board) — not `TodoWrite`/`TaskCreate`: each call is an extra API turn | same file |
+| Ask the user to choose between options | `AskUserQuestion` | ask in plain text |
+| Read a file / search text / find files | `Read` / `Grep` / `Glob` | `cat` / `sed -n` / `rg` / `find` |
+| Edit or create a file | `Edit` / `Write` | `apply_patch` |
+| Run a shell command | `Bash` | shell |
+| Fetch a page or search the web | `WebFetch` / `WebSearch` | Codex web search |
+| Drive a browser (UI verification) | `mcp__playwright__browser_*` via `znf:ui-verifier` | MCP `playwright` |
+| Wait on a condition or a background process | `Monitor` | poll with a shell loop |
+
+Codex notes: `Workflow` has no equivalent, take the T1/T2 path. `context: fork` frontmatter is
+ignored, the skill runs inline. Codex passes the text after `$znf:<name>` as plain prompt text.
 
 ## Boundary
 

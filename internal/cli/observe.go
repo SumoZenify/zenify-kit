@@ -45,7 +45,8 @@ func runObserveCount(stdin io.Reader, stdout io.Writer, getenv func(string) stri
 	if err := json.Unmarshal(payload, &p); err != nil {
 		return 0
 	}
-	if p.ToolName != "Task" && p.ToolName != "Agent" { // subagent tool: legacy and current name
+	// subagent tool: legacy Claude, current Claude, and Codex (apply.codexSubagentTool, E11)
+	if p.ToolName != "Task" && p.ToolName != "Agent" && p.ToolName != "collaborationspawn_agent" {
 		return 0
 	}
 	softCap := observe.ResolveCap(getenv)

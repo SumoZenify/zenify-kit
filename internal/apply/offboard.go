@@ -107,6 +107,101 @@ func RemoveGlobalHooks(home string, dryRun bool) (HookRemoval, error) {
 	return HookRemoval{Removed: removed}, nil
 }
 
+// RemoveCodexHooks removes every kit-wired hook (hooks-run entries and the
+// git-guard entry) from <codexHome>/hooks.json, keeping foreign hooks and other
+// top-level keys. Empty groups/events are dropped; a file left as {} or
+// {"hooks":{}} is deleted. Missing file → no-op. Fail-open on malformed input.
+func RemoveCodexHooks(codexHome string, dryRun bool) (HookRemoval, error) {
+	path := filepath.Join(codexHome, "hooks.json")
+	existing, err := os.ReadFile(path) //nolint:gosec // G304 -- path computed from codexHome, not externally-tainted
+	if err != nil {
+		if os.IsNotExist(err) {
+			return HookRemoval{}, nil
+		}
+		return HookRemoval{Skipped: true}, fmt.Errorf("read hooks.json: %w", err)
+	}
+	mode := os.FileMode(0o644)
+	if fi, statErr := os.Stat(path); statErr == nil {
+		mode = fi.Mode().Perm()
+	}
+
+	root := map[string]json.RawMessage{}
+	if err := json.Unmarshal(existing, &root); err != nil {
+		return HookRemoval{Skipped: true}, fmt.Errorf("hooks.json malformed, skipping: %w", err)
+	}
+	raw, ok := root["hooks"]
+	if !ok {
+		return HookRemoval{}, nil
+	}
+	hooks := map[string]any{}
+	if err := json.Unmarshal(raw, &hooks); err != nil || hooks == nil {
+		return HookRemoval{Skipped: true}, fmt.Errorf("hooks.json \"hooks\" not an object, skipping")
+	}
+
+	removed := 0
+	for event, v := range hooks {
+		groups, _ := v.([]any)
+		newGroups := make([]any, 0, len(groups))
+		for _, g := range groups {
+			gm, ok := g.(map[string]any)
+			if !ok {
+				newGroups = append(newGroups, g)
+				continue
+			}
+			inner, _ := gm["hooks"].([]any)
+			kept := make([]any, 0, len(inner))
+			for _, h := range inner {
+				if hm, ok := h.(map[string]any); ok {
+					if cmd, _ := hm["command"].(string); isCodexKitCommand(cmd) {
+						removed++
+						continue
+					}
+				}
+				kept = append(kept, h)
+			}
+			if len(kept) == 0 {
+				continue
+			}
+			gm["hooks"] = kept
+			newGroups = append(newGroups, gm)
+		}
+		if len(newGroups) == 0 {
+			delete(hooks, event)
+		} else {
+			hooks[event] = newGroups
+		}
+	}
+
+	emptyFile := len(hooks) == 0 && len(root) == 1 // only an empty "hooks" key
+	if dryRun || (removed == 0 && !emptyFile) {
+		return HookRemoval{Removed: removed}, nil
+	}
+
+	if len(hooks) == 0 {
+		delete(root, "hooks")
+	} else {
+		hooksOut, err := marshalNoEscape(hooks)
+		if err != nil {
+			return HookRemoval{Removed: removed}, err
+		}
+		root["hooks"] = json.RawMessage(bytes.TrimSpace(hooksOut))
+	}
+	if len(root) == 0 {
+		if err := os.Remove(path); err != nil {
+			return HookRemoval{Removed: removed}, err
+		}
+		return HookRemoval{Removed: removed}, nil
+	}
+	out, err := marshalNoEscape(root)
+	if err != nil {
+		return HookRemoval{Removed: removed}, err
+	}
+	if err := writeAtomic(path, out, mode); err != nil {
+		return HookRemoval{Removed: removed}, err
+	}
+	return HookRemoval{Removed: removed}, nil
+}
+
 // ExcludeLines is the single source of truth for the git-local exclusions the
 // kit manages in a repo's .git/info/exclude: ".worktrees/" (OQ-5, worktree
 // dir) and ".wt/" (wt's per-repo state, FR-5.1). ensureExclude (apply.go) uses

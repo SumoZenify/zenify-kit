@@ -58,6 +58,7 @@ Mỗi lệnh có một trang riêng với cú pháp, cờ và ví dụ. Nội du
 | [zenify release-note](./zenify_release-note) | Ghi một commit ghi chú release mang metadata rủi ro, để release report đọc sau. |
 | [zenify release-report](./zenify_release-report) | Sinh báo cáo rủi ro cho một release từ lịch sử git của mọi repo trong workspace. |
 | [zenify review-log](./zenify_review-log) | Xem tổng hợp các lần review của `/znf:review` đã ghi lại trên máy bạn. |
+| [zenify reviewer](./zenify_reviewer) | In ra engine review mà kit sẽ dùng ở phiên này, agent hoặc codex, kèm lý do khi rơi về agent. |
 | [zenify route-log](./zenify_route-log) | Xem log calibrate của cơ chế chọn model — mỗi lần `select-route` chạy ghi một record, lệnh này đếm theo site, model đã gửi, gate đã fire và tỉ lệ architect đổi quyết định. |
 | [zenify rules](./zenify_rules) | Nhóm lệnh kiểm tra rule team, hiện có lệnh lint ngôn ngữ cho file agent đọc. |
 | [zenify rules lint](./zenify_rules_lint) | Kiểm file mà agent đọc (skill, rule, mã nguồn kit): chặn tiếng Việt, và bắt frontmatter khai sai key `globs:` thay cho `paths:`. |
@@ -100,6 +101,7 @@ Hook và skill gọi các lệnh này; bạn không cần gõ tay nên chúng kh
 | `zenify observe meter` | PostToolUse hook: đo tool-output per-session; nhắc khi một result \> 50KB hoặc phiên \> 2MB (không sửa output) |
 | `zenify review-advise-gate` | Cơ học quyết định có gọi adviser LLM không ở POST của znf:review (AdviseInput JSON qua stdin, seam POST) |
 | `zenify review-bundle` | Cơ học chia diff lớn thành bundle cụm-file cho znf:review (seam BUNDLE) |
+| `zenify review-codex` | Chạy codex review rồi in findings JSON của kit (adapter, seam review engine) |
 | `zenify review-doctrine` | Cơ học strip dòng chỉ-verdict khỏi ## Verified của ship-pack (text qua stdin, seam doctrine) |
 | `zenify review-log record` | Ghi một review record vào store local (Record JSON qua stdin, seam POST) |
 | `zenify review-verify` | Cơ học verify findings của znf:review vs file thật (findings JSON qua stdin, seam VERIFY) |

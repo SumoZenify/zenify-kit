@@ -12,7 +12,7 @@ background: false
 
 **Announce:** "Using znf:standards to check test-traceability."
 
-This skill runs in a forked context: `$ARGUMENTS` carries the spec path, the plan path and
+This skill runs in a forked context: the argument (the text after the skill name) carries the spec path, the plan path and
 optionally the repo root (default: the current directory). Nothing else is inherited.
 
 M5b checks that an SC **is shaped as** testable; this skill checks that the requirement **has a real

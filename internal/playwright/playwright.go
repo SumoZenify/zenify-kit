@@ -6,6 +6,7 @@
 package playwright
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,17 @@ import (
 	"strings"
 )
 
+// Target selects which runtime's MCP registry the bootstrap manages.
+type Target string
+
+const (
+	TargetClaude Target = "claude"
+	TargetCodex  Target = "codex"
+)
+
 type Options struct {
+	// Target is the runtime to register with; empty means TargetClaude.
+	Target Target
 	Runner func(name string, args []string) error
 	// Output runs a command and returns its stdout (used to read `claude mcp get`).
 	Output func(name string, args []string) ([]byte, error)
@@ -75,6 +86,9 @@ func (s RegState) String() string {
 // is RegCustom (never overwritten). The second result lists desired args that
 // the current registration lacks.
 func Registration(o Options) (RegState, []string) {
+	if o.Target == TargetCodex {
+		return registrationCodex(o)
+	}
 	out, err := o.Output("claude", []string{"mcp", "get", "playwright"})
 	if err != nil {
 		return RegAbsent, nil
@@ -122,6 +136,55 @@ func Registration(o Options) (RegState, []string) {
 	return RegCustom, missing
 }
 
+// parseCodexMCPGet reads transport.command and transport.args from the JSON
+// printed by `codex mcp get playwright --json`.
+func parseCodexMCPGet(b []byte) (command string, args []string, err error) {
+	var v struct {
+		Transport struct {
+			Command string   `json:"command"`
+			Args    []string `json:"args"`
+		} `json:"transport"`
+	}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return "", nil, err
+	}
+	return v.Transport.Command, v.Transport.Args, nil
+}
+
+// registrationCodex classifies the Codex registration. A failing
+// `codex mcp get` (exit != 0, e.g. "No MCP server named") is RegAbsent.
+func registrationCodex(o Options) (RegState, []string) {
+	out, err := o.Output("codex", []string{"mcp", "get", "playwright", "--json"})
+	if err != nil {
+		return RegAbsent, nil
+	}
+	cmd, args, perr := parseCodexMCPGet(out)
+	want := DesiredArgs(o.Home)
+	var missing []string
+	for _, w := range want {
+		found := false
+		for _, a := range args {
+			if a == w {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, w)
+		}
+	}
+	if perr != nil || cmd != "npx" {
+		return RegCustom, missing
+	}
+	if strings.Join(args, " ") == strings.Join(want, " ") {
+		return RegDesired, nil
+	}
+	if len(args) == 1 && args[0] == want[0] {
+		return RegLegacyDefault, missing
+	}
+	return RegCustom, missing
+}
+
 // Status reports whether the Playwright MCP is registered as the kit wants it
 // and whether browser binaries are present — READ-ONLY, no browser is
 // launched. mcpOK is true only for RegDesired. Browser presence is a directory
@@ -155,6 +218,9 @@ func Bootstrap(o Options) error {
 			_, _ = fmt.Fprintf(o.Stdout, format+"\n", a...)
 		}
 	}
+	if o.Target == TargetCodex {
+		return bootstrapCodex(o, note)
+	}
 	add := func() error {
 		cmd := append([]string{"mcp", "add", "playwright", "-s", "user", "--", "npx"}, DesiredArgs(o.Home)...)
 		if err := o.Runner("claude", cmd); err != nil {
@@ -185,6 +251,35 @@ func Bootstrap(o Options) error {
 	note("playwright: ensuring chromium is installed")
 	if err := o.Runner("npx", []string{"playwright", "install", "chromium"}); err != nil {
 		return fmt.Errorf("install chromium: %w", err)
+	}
+	return nil
+}
+
+// bootstrapCodex registers the Playwright MCP with Codex (no scope flag, no
+// browser install: chromium is already provisioned by the claude target).
+func bootstrapCodex(o Options, note func(string, ...any)) error {
+	add := func() error {
+		cmd := append([]string{"mcp", "add", "playwright", "--", "npx"}, DesiredArgs(o.Home)...)
+		if err := o.Runner("codex", cmd); err != nil {
+			return fmt.Errorf("register playwright MCP (codex): %w", err)
+		}
+		return nil
+	}
+	state, missing := Registration(o)
+	switch state {
+	case RegAbsent:
+		note("playwright: registering MCP server (codex)")
+		return add()
+	case RegLegacyDefault:
+		note("playwright: migrating codex MCP registration to storage caps")
+		if err := o.Runner("codex", []string{"mcp", "remove", "playwright"}); err != nil {
+			return fmt.Errorf("remove legacy playwright MCP (codex): %w", err)
+		}
+		return add()
+	case RegCustom:
+		note("playwright: custom codex MCP registration kept; missing args: %s", strings.Join(missing, " "))
+	default:
+		note("playwright: codex MCP server already registered")
 	}
 	return nil
 }

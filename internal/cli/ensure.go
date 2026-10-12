@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +13,16 @@ import (
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/plugin"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/version"
 )
+
+// ensureReport carries what the Codex steps of ensureWorkspace found, for the
+// `zenify up` summary block (FR-7.2).
+type ensureReport struct {
+	CodexInstalled bool
+	CodexLinkPath  string
+	CodexHooks     apply.HookChanges
+	CodexAgents    int
+	CodexMCP       string // playwright registration state; filled by `up`
+}
 
 // ensureWorkspace brings a workspace to the state the kit expects (W0 FR-01):
 //
@@ -25,7 +36,7 @@ import (
 // Every step is fail-open: an error is one "znf ensure:" line on stderr and
 // the next step still runs. stdout only gets a line when something changed,
 // so a SessionStart on an up-to-date workspace prints nothing.
-func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
+func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) (rep ensureReport) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintln(stderr, "znf ensure: recovered:", r)
@@ -33,6 +44,15 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 	}()
 
 	resyncPluginIfStale(home, stderr)
+
+	// Codex discovers skills under ~/.agents/skills, so this runs whether or
+	// not codex is installed (FR-2.1).
+	rep.CodexLinkPath = filepath.Join(home, ".agents", "skills", "znf")
+	if st, err := apply.EnsureCodexSkillsLink(home, false); err != nil {
+		fmt.Fprintln(stderr, "znf ensure: codex-skills:", err)
+	} else if st == apply.LinkRealDir {
+		fmt.Fprintf(stderr, "znf ensure: codex-skills: %s là thư mục thật, bỏ qua\n", filepath.Join(home, ".agents", "skills", "znf")) //znf:allow-lang
+	}
 
 	if ch, err := apply.EnsureGlobalHooks(home, false); err != nil {
 		fmt.Fprintln(stderr, "znf ensure: hooks:", err)
@@ -47,6 +67,23 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 		fmt.Fprintln(stderr, "znf ensure: git-guard:", err)
 	} else if changed {
 		fmt.Fprintln(stdout, "wired git-guard hook (blocks commit/push on deploy branches)")
+	}
+
+	if codexOnPath() {
+		rep.CodexInstalled = true
+		if ch, err := apply.EnsureCodexHooks(codexHomeDir(home, os.Getenv), false); err != nil {
+			fmt.Fprintln(stderr, "znf ensure: codex-hooks:", err)
+		} else if rep.CodexHooks = ch; ch.Added+ch.Updated > 0 {
+			fmt.Fprintln(stdout, "Codex hook chưa chạy cho tới khi bạn trust một lần: mở codex, gõ /hooks, chọn trust.") //znf:allow-lang
+		}
+		if ar, err := plugin.SyncCodexAgents(codexHomeDir(home, os.Getenv), false); err != nil {
+			fmt.Fprintln(stderr, "znf ensure: codex-agents:", err)
+		} else {
+			rep.CodexAgents = len(ar.Written) + len(ar.Unchanged)
+			for _, n := range ar.Skipped {
+				fmt.Fprintf(stderr, "znf ensure: codex-agents: %s.toml không phải của kit, bỏ qua\n", n) //znf:allow-lang
+			}
+		}
 	}
 
 	if changed, err := apply.EnsureWorkspaceModel(workspace, false); err != nil {
@@ -67,6 +104,13 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 	} else if changed {
 		fmt.Fprintf(stdout, "set %s=%s in ~/.claude/settings.json (select-route routes strong-model dispatches there)\n",
 			apply.StrongModelEnv, apply.StrongModelDefault)
+	}
+
+	if changed, err := apply.EnsureReviewerEnv(home, false); err != nil {
+		fmt.Fprintln(stderr, "znf ensure: reviewer:", err)
+	} else if changed {
+		fmt.Fprintf(stdout, "set %s=%s in ~/.claude/settings.json (zenify reviewer picks the review engine from it)\n",
+			apply.ReviewerEnv, apply.ReviewerDefault)
 	}
 
 	if n, err := apply.EnsureKitPermissions(home, false); err != nil {
@@ -115,6 +159,7 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 			}
 		}
 	}
+	return rep
 }
 
 // resyncPluginIfStale is the former selfHeal body: when the plugin manifest's

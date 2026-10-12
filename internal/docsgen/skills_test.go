@@ -200,9 +200,24 @@ func countSkillDirs(t *testing.T, fsys fs.FS, dir string) int {
 func TestGenHooks_Table(t *testing.T) {
 	files := GenHooks([]apply.HookSpec{{Event: "Stop", Matcher: "", ID: "docs-sync", Purpose: "Đồng bộ knowledge store"}, {Event: "PreToolUse", Matcher: "Task|Agent", ID: "observe-count", Purpose: "Đếm subagent"}, {Event: "PostToolUse", Matcher: "", ID: "escape-check", Purpose: "Ghi <x>|log"}}) //znf:allow-lang
 	h := string(files["hooks.md"])
-	for _, want := range []string{"| Event | Matcher | Lệnh | Mục đích |", "| Stop | — | `zenify hooks-run docs-sync` | Đồng bộ knowledge store |", "| PreToolUse | `Task\\|Agent` | `zenify hooks-run observe-count` | Đếm subagent |", "| PostToolUse | — | `zenify hooks-run escape-check` | Ghi \\<x\\>\\|log |", "zenify git-guard"} { //znf:allow-lang
+	for _, want := range []string{"| Event | Matcher | Lệnh | Mục đích | Runtime |", "| Stop | — | `zenify hooks-run docs-sync` | Đồng bộ knowledge store | Claude, Codex |", "| PreToolUse | `Task\\|Agent` | `zenify hooks-run observe-count` | Đếm subagent | Claude, Codex |", "| PostToolUse | — | `zenify hooks-run escape-check` | Ghi \\<x\\>\\|log | Claude, Codex |", "zenify git-guard", "| Claude, Codex |"} { //znf:allow-lang
 		if !strings.Contains(h, want) {
 			t.Errorf("hooks.md missing %q\n%s", want, h)
 		}
+	}
+}
+
+func TestGenHooks_RuntimeColumn(t *testing.T) {
+	h := string(GenHooks(apply.HookSpecs())["hooks.md"])
+	for _, line := range strings.Split(h, "\n") {
+		if strings.Contains(line, "hooks-run read-guard") && (!strings.HasSuffix(line, "| Claude |") || strings.Contains(line, "Codex")) {
+			t.Errorf("read-guard row must be Claude-only: %s", line)
+		}
+		if strings.Contains(line, "hooks-run docs-sync") && !strings.HasSuffix(line, "| Claude, Codex |") {
+			t.Errorf("docs-sync row must be Claude, Codex: %s", line)
+		}
+	}
+	if !strings.Contains(h, "hooks-run read-guard") {
+		t.Error("read-guard row missing")
 	}
 }

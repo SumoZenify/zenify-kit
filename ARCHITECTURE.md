@@ -29,19 +29,24 @@ names, or tenant IDs must always come back empty.
 
 ## Harness boundary
 
-The kit runs inside an agent harness (today: Claude Code), and the boundary
+The kit runs inside an agent harness (Claude Code and Codex), and the boundary
 between the two is deliberate:
 
 - **The `zenify` binary is harness-agnostic.** It reads files, git state and
   transcripts on disk and prints text or JSON. It never calls a harness tool
   and never assumes one exists. A subcommand that would only make sense inside
   a particular harness belongs in the adapter layer below, not in the binary.
-- **Hooks and skill frontmatter are the only adapter layer.** `hooks.json`
-  matches on harness tool names (`Agent|Task`, `Skill`, …) and forwards to
-  `zenify observe …`; skill frontmatter (`allowed-tools`, `context`,
+- **Hooks and skill frontmatter are the only adapter layer.** Hooks live in
+  `~/.claude/settings.json` and `~/.codex/hooks.json`, both generated from the
+  single `znfHookSpecs()` table (Codex gets the subset it can run, with its own
+  subagent tool name) and forwarding to `zenify hooks-run <id>` or
+  `zenify git-guard`. Skill frontmatter (`allowed-tools`, `context`,
   `background`, `disable-model-invocation`) tells the harness how to load a
   skill. Everything that must know a tool's *name* lives in one of these two
   places.
+- **One skill tree, one agent source.** Skills exist once, under
+  `~/.claude/skills/znf`; Codex reaches them through a symlink at
+  `~/.agents/skills/znf`. Codex agents are generated from `agents/*.md`.
 - **Skills describe actions, not tools.** A skill body says "dispatch a
   subagent" or "open the task ledger"; the binding from action to tool name is
   the single table `skills/_shared/harness-tools.md`. Checkable named lines

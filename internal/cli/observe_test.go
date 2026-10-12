@@ -54,6 +54,17 @@ func TestObserveCount_SubagentToolNamesWarn(t *testing.T) {
 	}
 }
 
+// The Codex subagent tool name (E11) counts like `Agent`; Bash does not.
+func TestObserveCount_CodexSubagentToolWarns(t *testing.T) {
+	b := stubBump()
+	in := `{"session_id":"s","tool_name":"collaborationspawn_agent"}`
+	_, _ = run(t, in, env(nil), b)
+	out, _ := run(t, in, env(nil), b)
+	if !strings.Contains(out, "WARN-MARKER") {
+		t.Fatalf("codex subagent tool not counted: %q", out)
+	}
+}
+
 func TestObserveCount_NonTaskIsNoop(t *testing.T) {
 	out, code := run(t, `{"session_id":"s","tool_name":"Bash"}`, env(nil),
 		func(string, int, time.Time) observe.Decision {

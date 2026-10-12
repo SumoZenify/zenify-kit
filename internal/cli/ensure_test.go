@@ -289,3 +289,58 @@ func TestEnsureWorkspace_FailedConfigWriteIsReported(t *testing.T) {
 		t.Fatalf("stderr must carry the failed-write note, got %q", e.String())
 	}
 }
+
+func fakeLookPath(t *testing.T, found bool) {
+	t.Helper()
+	old := lookPath
+	t.Cleanup(func() { lookPath = old })
+	lookPath = func(string) (string, error) {
+		if found {
+			return "/usr/bin/codex", nil
+		}
+		return "", fmt.Errorf("not found")
+	}
+}
+
+func TestEnsureWorkspace_CodexAbsent_NoCodexHomeButSkillsLink(t *testing.T) {
+	fakeLookPath(t, false)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("CODEX_HOME", "")
+	stampManifest(t, home, version.Current())
+	storeFixture(t)
+
+	var o, e bytes.Buffer
+	ensureWorkspace(t.TempDir(), home, &o, &e)
+	if _, err := os.Stat(filepath.Join(home, ".codex")); !os.IsNotExist(err) {
+		t.Fatalf("~/.codex must not exist when codex absent: %v", err)
+	}
+	if _, err := os.Readlink(filepath.Join(home, ".agents", "skills", "znf")); err != nil {
+		t.Fatalf("skills link must be made regardless of codex: %v", err)
+	}
+}
+
+func TestEnsureWorkspace_CodexPresent_WritesHooksAndTrustOnce(t *testing.T) {
+	fakeLookPath(t, true)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("CODEX_HOME", "")
+	stampManifest(t, home, version.Current())
+	storeFixture(t)
+	ws := t.TempDir()
+	const trust = "Codex hook chưa chạy cho tới khi bạn trust một lần: mở codex, gõ /hooks, chọn trust." //znf:allow-lang
+
+	var o1, e1 bytes.Buffer
+	ensureWorkspace(ws, home, &o1, &e1)
+	if _, err := os.Stat(filepath.Join(home, ".codex", "hooks.json")); err != nil {
+		t.Fatalf("hooks.json missing: %v (stderr=%s)", err, e1.String())
+	}
+	if !strings.Contains(o1.String(), trust) {
+		t.Fatalf("stdout missing trust line: %s", o1.String())
+	}
+	var o2, e2 bytes.Buffer
+	ensureWorkspace(ws, home, &o2, &e2)
+	if strings.Contains(o2.String(), trust) {
+		t.Fatalf("trust line printed twice: %s", o2.String())
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/managed"
@@ -65,11 +66,18 @@ func TestDown_DryRun_NoWritesAndNonGoalsUntouched(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	var prevOut bytes.Buffer
 	cmd := newDownCmd()
-	cmd.SetOut(&bytes.Buffer{})
+	cmd.SetOut(&prevOut)
 	cmd.SetArgs([]string{"--workspace", ws, "--manifest", repos}) // NO --apply → preview
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("down preview: %v", err)
+	}
+
+	for _, step := range []string{"codex-hooks", "codex-skills"} {
+		if !strings.Contains(prevOut.String(), step) {
+			t.Errorf("preview must list step %q: %s", step, prevOut.String())
+		}
 	}
 
 	// SC-25: must not write — global settings.json, exclude, settings.local.json unchanged.

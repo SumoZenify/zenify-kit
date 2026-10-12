@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ZenifyAIContactCenter/zenify-kit/internal/apply"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/exitcode"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/ghx"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/lock"
@@ -492,5 +493,26 @@ func TestWriteRelocateLog_ToIsWorkspaceAbsolute(t *testing.T) {
 	wantTo := filepath.Join(workspace, "repos/x")
 	if !strings.Contains(string(b), fmt.Sprintf("%q", wantTo)) {
 		t.Fatalf("relocate.json missing workspace-absolute To %q:\n%s", wantTo, b)
+	}
+}
+
+func TestRenderCodexSummary(t *testing.T) {
+	var b bytes.Buffer
+	renderCodexSummary(ensureReport{}, &b)
+	if got := b.String(); got != "Codex: không cài, bỏ qua\n" { //znf:allow-lang
+		t.Fatalf("not installed: %q", got)
+	}
+	b.Reset()
+	renderCodexSummary(ensureReport{CodexInstalled: true, CodexLinkPath: "/h/.agents/skills/znf", CodexHooks: apply.HookChanges{Added: 2, Unchanged: 5}, CodexAgents: 5, CodexMCP: "desired"}, &b)
+	s := b.String()
+	for _, want := range []string{"Codex:", "skills: symlink /h/.agents/skills/znf", "hooks: 7 entry", "/hooks", "agents: 5", "MCP playwright: desired"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("missing %q in\n%s", want, s)
+		}
+	}
+	b.Reset()
+	renderCodexSummary(ensureReport{CodexInstalled: true, CodexHooks: apply.HookChanges{Unchanged: 7}}, &b)
+	if strings.Contains(b.String(), "/hooks") {
+		t.Errorf("trust nudge must only show on changes:\n%s", b.String())
 	}
 }

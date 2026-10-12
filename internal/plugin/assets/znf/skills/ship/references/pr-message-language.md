@@ -26,3 +26,25 @@ A PR carries two audiences in one artifact. Keep them apart:
 Do not split the two halves the wrong way. A title whose description is English sitting over a body
 in the project's language — or the reverse, an English body under a localized title — is the exact
 inconsistency this rule exists to remove. Pick the audience per field, not per PR.
+
+## Fixed body structure
+
+The body is always, in this order (section headings stay exactly as written; the content is
+in the project's prose language):
+
+```
+<title: type(scope): description>
+
+## Nghiệm thu
+<one line per spec SC-n when the ship-pack carries a spec path; otherwise the single line: Không có spec>
+
+## Review còn mở
+<every `minor (deferred)` / `parked` line from the SDD ledger, verbatim; otherwise the single line: Không có>
+
+<the existing body: summary · what changed · how verified · attribution line>
+```
+
+- `## Nghiệm thu` — read the spec the ship-pack's `## Intent` names and list its `SC-n` lines.
+- `## Review còn mở` — the same lines the pack's `## Deferred` carries
+  (`rg -n 'minor \(deferred\)|parked —' .znf/sdd/*/progress.md`); no ledger → `Không có`.
+

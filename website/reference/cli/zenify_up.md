@@ -36,6 +36,7 @@ Lệnh cần `gh` đã đăng nhập với scope `read:org` và `repo`. Chưa đ
 | `--manifest` | Đường dẫn manifest workspace, khi không dùng bản mặc định trong `.zenify/`. |
 | `--non-interactive` | Không mở wizard kể cả khi đang ở terminal. Dùng trong script. |
 | `--overlay` | File overlay cho máy này, mặc định `.zenify-overlay.yaml` trong workspace. |
+| `--reviewer` | Đặt engine review `agent` hoặc `codex` vào `ZNF_REVIEWER` trong `~/.claude/settings.json`. Chỉ ghi khi có `--apply`. |
 | `--workspace` | Thư mục workspace. Không có, wizard hỏi hoặc lệnh dùng thư mục hiện tại. |
 
 ## Ví dụ

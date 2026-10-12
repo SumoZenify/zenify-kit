@@ -300,6 +300,12 @@ func runApply(w io.Writer, errW io.Writer, plans []reconcile.RepoPlan, m *manife
 			if err := playwright.Bootstrap(po); err != nil {
 				_, _ = fmt.Fprintf(errW, "warning: playwright bootstrap: %v (onboarding otherwise succeeded)\n", err)
 			}
+			if codexOnPath() {
+				po.Target = playwright.TargetCodex
+				if err := playwright.Bootstrap(po); err != nil {
+					_, _ = fmt.Fprintf(errW, "znf ensure: playwright codex: %v\n", err) //znf:allow-lang
+				}
+			}
 		}
 	}
 
@@ -311,13 +317,40 @@ func runApply(w io.Writer, errW io.Writer, plans []reconcile.RepoPlan, m *manife
 	// Hooks + model pin + store config distribution, all fail-open (W0 FR-01.4);
 	// never affects `failed`.
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		ensureWorkspace(workspace, home, w, errW)
+		rep := ensureWorkspace(workspace, home, w, errW)
+		if rep.CodexInstalled {
+			st, _ := playwright.Registration(playwright.Options{
+				Target: playwright.TargetCodex,
+				Output: func(name string, args []string) ([]byte, error) { return exec.Command(name, args...).Output() }, //nolint:gosec // G204 -- fixed trusted binary, internally-computed args
+				Home:   home,
+				Getenv: os.Getenv,
+				GOOS:   runtime.GOOS,
+			})
+			rep.CodexMCP = st.String()
+		}
+		renderCodexSummary(rep, w)
 	}
 
 	if failed > 0 {
 		return exitcode.New(exitcode.Fail, fmt.Errorf("apply: %d repo(s) failed", failed))
 	}
 	return nil
+}
+
+// renderCodexSummary prints the Codex block of `zenify up` (FR-7.2).
+func renderCodexSummary(rep ensureReport, w io.Writer) {
+	if !rep.CodexInstalled {
+		fmt.Fprintln(w, "Codex: không cài, bỏ qua") //znf:allow-lang
+		return
+	}
+	fmt.Fprintln(w, "Codex:")
+	fmt.Fprintf(w, "  skills: symlink %s\n", rep.CodexLinkPath)
+	fmt.Fprintf(w, "  hooks: %d entry\n", rep.CodexHooks.Total())
+	if rep.CodexHooks.Added+rep.CodexHooks.Updated > 0 {
+		fmt.Fprintln(w, "    hook mới/đổi chưa chạy cho tới khi trust: mở codex, gõ /hooks, chọn trust") //znf:allow-lang
+	}
+	fmt.Fprintf(w, "  agents: %d\n", rep.CodexAgents)
+	fmt.Fprintf(w, "  MCP playwright: %s\n", rep.CodexMCP)
 }
 
 // hasFrontendRepo reports whether the manifest onboards any frontend repo,
@@ -405,6 +438,7 @@ func newUpCmd() *cobra.Command {
 		manifestPath   string
 		overlayPath    string
 		applyFlag      bool
+		reviewer       string
 	)
 	cmd := &cobra.Command{
 		Use:   "up",
@@ -412,6 +446,16 @@ func newUpCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := dryRunApplyConflict(applyFlag, cmd.Flags().Changed("dry-run"), dryRun); err != nil {
 				return exitcode.New(exitcode.BadArgs, err)
+			}
+			if reviewer != "" {
+				if reviewer != "agent" && reviewer != "codex" {
+					return exitcode.New(exitcode.BadArgs, fmt.Errorf("--reviewer %q: want agent or codex", reviewer))
+				}
+				if home, herr := os.UserHomeDir(); herr == nil && home != "" {
+					if err := apply.SetReviewerEnv(home, reviewer, !applyFlag); err != nil {
+						fmt.Fprintln(cmd.ErrOrStderr(), "znf up: reviewer:", err)
+					}
+				}
 			}
 			cwd, _ := os.Getwd()
 			isTTY := term.IsTerminal(int(os.Stdout.Fd()))
@@ -518,6 +562,7 @@ func newUpCmd() *cobra.Command {
 	cmd.Flags().StringVar(&workspace, "workspace", "", "workspace root (default: the workspace found from cwd or ~/.zenify/workspace; the wizard asks when there is none)")
 	cmd.Flags().StringVar(&manifestPath, "manifest", "", "path to repos.yaml (default: manifest/repos.yaml under cwd when present, else the copy embedded in the binary)")
 	cmd.Flags().StringVar(&overlayPath, "overlay", "", "path to personal overlay (default <workspace>/.zenify-overlay.yaml)")
+	cmd.Flags().StringVar(&reviewer, "reviewer", "", "review engine written to ZNF_REVIEWER in ~/.claude/settings.json: agent or codex (written only with --apply)")
 	cmd.Flags().BoolVar(&applyFlag, "apply", false, "apply changes without the interactive wizard (required for non-interactive/CI runs)")
 	return cmd
 }
