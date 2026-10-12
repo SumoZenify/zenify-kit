@@ -73,17 +73,17 @@ func resolveBase(dir string) string {
 	return "origin/main"
 }
 
-// runSpecStatus is the testable core (FAIL-OPEN: always returns nil). resolve/getBase/r are
-// injected so tests need no real git or filesystem layout.
-func runSpecStatus(
-	storeDir, workspaceDir string,
-	noFetch, jsonOut bool,
-	base string, active bool,
+// computeStatuses gathers every spec's lifecycle state (FAIL-OPEN: git problems degrade a repo to
+// unknown). It neither sorts nor filters, so callers decide presentation.
+func computeStatuses(
+	storeDir string,
+	noFetch bool,
+	base string,
 	resolve func(string) (string, bool),
 	getBase func(string) string,
 	r gitx.Runner,
-	stdout, stderr io.Writer,
-) error {
+	stderr io.Writer,
+) []speclife.Status {
 	specs := loadAllSpecs(storeDir)
 
 	hasPlan := map[string]bool{}
@@ -130,7 +130,21 @@ func runSpecStatus(
 		notesByRepo[repo] = release.NoteRiskBySlug(notes)
 	}
 
-	statuses := speclife.Statuses(specs, hasPlan, changesByRepo, notesByRepo, gitEvaluable)
+	return speclife.Statuses(specs, hasPlan, changesByRepo, notesByRepo, gitEvaluable)
+}
+
+// runSpecStatus is the testable core (FAIL-OPEN: always returns nil). resolve/getBase/r are
+// injected so tests need no real git or filesystem layout.
+func runSpecStatus(
+	storeDir, workspaceDir string,
+	noFetch, jsonOut bool,
+	base string, active bool,
+	resolve func(string) (string, bool),
+	getBase func(string) string,
+	r gitx.Runner,
+	stdout, stderr io.Writer,
+) error {
+	statuses := computeStatuses(storeDir, noFetch, base, resolve, getBase, r, stderr)
 	if active {
 		var kept []speclife.Status
 		for _, s := range statuses {
