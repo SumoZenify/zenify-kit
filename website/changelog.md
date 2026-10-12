@@ -8,6 +8,19 @@ Mỗi release một mục, viết cho người dùng kit, không phải danh sá
 
 Bản trước `v0.22.0`: xem [GitHub Releases](https://github.com/ZenifyAIContactCenter/zenify-kit/releases).
 
+## v0.31.0
+
+*2026-10-12*
+
+- Kit chạy được trên Codex, cạnh Claude Code. Khi máy có `codex` trên PATH, `zenify up` nối kit vào Codex: skill qua symlink `~/.agents/skills/znf` (cùng cây skill Claude đang dùng), hook vào `~/.codex/hooks.json` (sinh từ cùng bảng hook với Claude, xem cột Runtime ở trang [Hook](/reference/hooks)), 5 agent của kit thành `~/.codex/agents/*.toml`, và Playwright MCP đăng ký qua `codex mcp add`. Cuối lần chạy `up` in khối `Codex:` bốn dòng; máy không có `codex` chỉ thấy `Codex: không cài, bỏ qua`. `zenify down` gỡ đúng các mục kit đã ghi. Hướng dẫn: [Chạy với Codex](/guides/codex).
+- Codex bỏ qua hook chưa trust mà không báo lỗi: sau `zenify up` lần đầu hoặc sau khi hook đổi, mở `codex`, gõ `/hooks` và chọn trust một lần.
+- Trên Codex gọi skill bằng `$znf:<tên>` (ví dụ `$znf:fix`, `$znf:ship`); đối số là phần chữ đứng sau tên skill, nên các skill không còn dùng `$ARGUMENTS`. Codex không có hook `read-guard` và không có tool Workflow; `/znf:review` tầng T3 trên Codex chạy một lượt, không gom cụm.
+- Chọn engine review: `zenify up --reviewer codex` đặt `ZNF_REVIEWER=codex` (mặc định `agent`), `zenify reviewer` in lựa chọn hiện tại và lý do. Với `codex`, `/znf:review` và bước review của `/znf:ship` chạy `codex review` thay cho agent reviewer; finding vẫn đi qua `review-verify` như trước.
+- `/znf:ship` mở PR với body cố định: `## Nghiệm thu` (các SC của spec), `## Review còn mở` (các dòng deferred/parked từ ledger SDD), rồi phần tóm tắt và kiểm chứng.
+- `zenify doctor` thêm năm check: `codex-hooks` (hook Codex của kit có đủ không), `reviewer` (engine đang chọn), `agents-md` (repo nào thiếu `AGENTS.md`), `shadow` (skill/agent/rule cá nhân trùng tên với kit), `context-budget` (tổng byte các file nạp mọi phiên, và từng `repos/<r>/CLAUDE.md` vượt 8 KiB, 200 dòng hoặc chứa cây thư mục). Các check này chỉ cảnh báo, không làm `doctor` fail.
+- `route-log` ghi thêm `runtime` (`claude` hoặc `codex`) cho mỗi bản ghi.
+- Repo kit có `AGENTS.md` cho Codex, trỏ về `ARCHITECTURE.md` thay cho `CLAUDE.md`.
+
 ## v0.30.0
 
 *2026-10-07*
