@@ -117,7 +117,10 @@ func Plan(fs FS, store string, statuses []speclife.Status, now time.Time) ([]Act
 	}
 
 	// References no spec, surviving plan or .config file links by full relative path.
+	// A source that could not be read might be the one linking a reference, so any read failure
+	// skips the rule rather than deleting on incomplete evidence.
 	var sources []string
+	before := len(notes)
 	for _, dir := range []string{"specs", "plans", ".config"} {
 		for _, p := range walk(dir) {
 			if deletedPlans[p] {
@@ -131,6 +134,10 @@ func Plan(fs FS, store string, statuses []speclife.Status, now time.Time) ([]Act
 		}
 	}
 	for _, p := range walk("reference") {
+		if len(notes) > before {
+			notes = append(notes, "docs sweep: skip reference rule: a link source could not be read")
+			break
+		}
 		if !linked(sources, p) {
 			acts = append(acts, Action{Kind: KindDeleteReference, Path: p, Detail: "unlinked"})
 		}
