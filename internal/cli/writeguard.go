@@ -57,7 +57,7 @@ func runWriteGuard(stdin io.Reader, stderr io.Writer, findWorkspace func(string)
 		return 0
 	}
 	rel, err := filepath.Rel(ws, path)
-	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return 0
 	}
 	segs := strings.Split(filepath.ToSlash(rel), "/")
@@ -66,7 +66,7 @@ func runWriteGuard(stdin io.Reader, stderr io.Writer, findWorkspace func(string)
 		return 2
 	}
 	switch {
-	case segs[0] == "repos":
+	case repoRootSegs(ws)[segs[0]]:
 		return 0
 	case !rootAllowlist[segs[0]]:
 		return deny()

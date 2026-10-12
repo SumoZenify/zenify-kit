@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -35,6 +36,7 @@ func TestWriteGuard_Table(t *testing.T) { // SC-12 + Review Focus 1
 		{"relative", `{"tool_name":"Write","cwd":"/w","tool_input":{"file_path":"check.png"}}`, 2},
 		{"notebook", `{"tool_name":"NotebookEdit","cwd":"/w","tool_input":{"notebook_path":"/w/nb.ipynb"}}`, 2},
 		{"dotdot-escape", `{"tool_name":"Write","tool_input":{"file_path":"/w/../x.png"}}`, 0},
+		{"dotdot-prefixed-entry", `{"tool_name":"Write","tool_input":{"file_path":"/w/..foo"}}`, 2},
 		{"bad-json", `{`, 0},
 	}
 	for _, c := range cases {
@@ -49,5 +51,21 @@ func TestWriteGuard_Table(t *testing.T) { // SC-12 + Review Focus 1
 		if c.want == 0 && e.Len() != 0 {
 			t.Errorf("%s: allow must be silent, got %q", c.name, e.String())
 		}
+	}
+}
+
+// Repo roots come from the manifest/overlay: a repo placed outside repos/ must stay writable.
+func TestWriteGuard_OverlayRepoRoot(t *testing.T) {
+	ws := t.TempDir()
+	writeF(t, filepath.Join(ws, ".zenify-overlay.yaml"), "repos:\n  - name: contact-center-be\n    path: elsewhere/a\n")
+	find := func(string) (string, bool) { return ws, true }
+	var e bytes.Buffer
+	payload := `{"tool_name":"Write","tool_input":{"file_path":"` + filepath.Join(ws, "elsewhere", "a", "x.go") + `"}}`
+	if got := runWriteGuard(strings.NewReader(payload), &e, find); got != 0 {
+		t.Fatalf("overlay repo root denied: %d %s", got, e.String())
+	}
+	payload = `{"tool_name":"Write","tool_input":{"file_path":"` + filepath.Join(ws, "other", "x.go") + `"}}`
+	if got := runWriteGuard(strings.NewReader(payload), &e, find); got != 2 {
+		t.Fatalf("non-repo root must still be denied: %d", got)
 	}
 }

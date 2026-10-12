@@ -177,3 +177,14 @@ func TestMemoryIndexCheck(t *testing.T) {
 		t.Fatal("150 lines / 10 KB must be ok")
 	}
 }
+
+func TestWorkspaceRootCheck_OverlayRepoRootNotFlagged(t *testing.T) {
+	ws := t.TempDir()
+	os.MkdirAll(filepath.Join(ws, "elsewhere", "a"), 0o755)
+	os.MkdirAll(filepath.Join(ws, "stray"), 0o755)
+	writeF(t, filepath.Join(ws, ".zenify-overlay.yaml"), "repos:\n  - name: contact-center-be\n    path: elsewhere/a\n")
+	ok, d := workspaceRootCheck(ws).Run()
+	if ok || strings.Contains(d, "elsewhere") || !strings.Contains(d, "stray") {
+		t.Fatalf("ok=%v %q", ok, d)
+	}
+}

@@ -214,15 +214,35 @@ func manifestRepoPaths(workspace string) ([]string, error) {
 	return repos, nil
 }
 
+// repoRootSegs is the set of workspace-root entries that hold repos: "repos" plus the first path
+// segment of every manifest/overlay repo path. A manifest error leaves just "repos".
+func repoRootSegs(ws string) map[string]bool {
+	roots := map[string]bool{"repos": true}
+	paths, err := manifestRepoPaths(ws)
+	if err != nil {
+		return roots
+	}
+	for _, p := range paths {
+		if filepath.IsAbs(p) {
+			continue
+		}
+		if seg := strings.Split(filepath.ToSlash(filepath.Clean(p)), "/")[0]; seg != "" && seg != ".." && seg != "." {
+			roots[seg] = true
+		}
+	}
+	return roots
+}
+
 // workspaceRootCheck flags entries at the workspace root and under docs/ that
 // are outside the convention (rootAllowlist + repos, docsDirs).
 func workspaceRootCheck(ws string) Check {
 	return Check{Name: "workspace-root", Run: func() (bool, string) {
 		var bad []string
+		roots := repoRootSegs(ws)
 		if ents, err := os.ReadDir(ws); err == nil {
 			for _, e := range ents {
 				n := e.Name()
-				if n == "repos" || rootAllowlist[n] {
+				if roots[n] || rootAllowlist[n] {
 					continue
 				}
 				if n == ".znf" {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -240,7 +241,23 @@ func copyFile(fs FS, src, dst string) error {
 	if err := fs.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return err
 	}
-	return fs.WriteFile(dst, b, 0o644)
+	return fs.WriteFile(freeName(fs, dst), b, 0o644)
+}
+
+// freeName returns dst, or dst with .1, .2, ... before the extension when dst exists, so a
+// demotion copy never overwrites a local file that is not synced anywhere.
+func freeName(fs FS, dst string) string {
+	if _, err := fs.Stat(dst); err != nil {
+		return dst
+	}
+	ext := filepath.Ext(dst)
+	stem := strings.TrimSuffix(dst, ext)
+	for i := 1; ; i++ {
+		c := stem + "." + strconv.Itoa(i) + ext
+		if _, err := fs.Stat(c); err != nil {
+			return c
+		}
+	}
 }
 
 func writeHeader(fs FS, p string, state speclife.State) error {

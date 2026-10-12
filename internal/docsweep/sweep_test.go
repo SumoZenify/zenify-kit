@@ -304,3 +304,17 @@ func TestPlan_ReferenceWalkErrorDoesNotSkipRule(t *testing.T) {
 		t.Fatalf("rule skipped on a reference walk error: %v", notes)
 	}
 }
+
+func TestApplyDemotionNeverOverwritesLocalFile(t *testing.T) {
+	fs := newMemFS(map[string]string{"/s/specs/.keep": "", "/s/handoff/x.md": "NEW", "/v/notes/x.md": "OLD"})
+	acts, _ := Plan(fs, "/s", nil, time.Now())
+	if notes := Apply(fs, "/s", "/v", acts); len(notes) != 0 {
+		t.Fatal(notes)
+	}
+	if b, _ := fs.ReadFile("/v/notes/x.md"); string(b) != "OLD" {
+		t.Fatalf("existing local file overwritten: %q", b)
+	}
+	if b, _ := fs.ReadFile("/v/notes/x.1.md"); string(b) != "NEW" {
+		t.Fatalf("copy not at x.1.md: %q", b)
+	}
+}
