@@ -35,5 +35,6 @@ Lệnh này đặt `ZNF_REVIEWER=codex` (mặc định là `agent`). Chạy `zen
 ## Codex còn thiếu gì
 
 - Không có hook `read-guard`: Codex không có hook cho thao tác Read, nên hook này chỉ chạy trên Claude.
+- Không có hook `write-guard`: Codex không có hook cho thao tác Write/Edit, nên hook này chỉ chạy trên Claude.
 - Không có công cụ Workflow để gom T3, nên review tầng T3 không gom được như trên Claude.
 - Không có `claudeMdExcludes`.

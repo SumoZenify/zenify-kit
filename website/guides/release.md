@@ -110,5 +110,4 @@ Tag là quyết định release của người, không của agent. Agent chuẩ
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - internal/docsgen/catalog/cli/zenify_release-note.md, zenify_release-report.md
-- docs/handoff/zenify-kit/m7-release-report.md (regression definition, N auto-detect, fail-open)
 -->

@@ -78,6 +78,7 @@ export default withMermaid({
         { text: 'Worktree theo slug', link: '/concepts/worktree-per-slug' },
         { text: 'Base ref, hotfix base, port block', link: '/concepts/base-ref-and-ports' },
         { text: 'Knowledge store và docs/', link: '/concepts/knowledge-store' },
+        { text: 'Quy ước thư mục workspace', link: '/concepts/workspace-layout' },
         { text: 'Gate fail-open', link: '/concepts/gate-fail-open' },
         { text: 'Chọn model: session, skill, subagent', link: '/concepts/model-routing' },
         { text: 'Ngân sách context: read-guard, meter, statusline', link: '/concepts/context-budget' },

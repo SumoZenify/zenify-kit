@@ -67,6 +67,5 @@ Sau khi cài, đi tiếp tới [Bắt đầu nhanh](/getting-started/quickstart)
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `README.md` (repo `zenify-kit`, mục "Install")
-- `docs/handoff/zenify-kit/update-and-version-gate.md` (ghi chú v0.17.7, máy từ v0.17.6 trở xuống cần nâng cấp tay một lần)
 - Nội dung cảnh báo lấy từ tag `v0.17.7` (`git show v0.17.7`) và `update-and-version-gate.md`, không phải từ `--help`
 -->

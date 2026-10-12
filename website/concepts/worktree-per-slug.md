@@ -51,6 +51,5 @@ Một plan chia thành nhiều SDD task (Task 1, Task 2, ...). Tất cả task �
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
 - `internal/plugin/assets/znf/skills/discipline/SKILL.md` §8 (đơn vị slug, `--another`, miễn trừ hotfix, `wt rm` từ chối chưa merge)
-- `docs/handoff/zenify-kit/m0-foundation.md` (`wt new`/`wt rm`/`wt sweep`: hành vi và cờ thật của build này)
 - `./zenify wt --help` (danh sách subcommand: `config, ls, new, path, promote, rm, sweep, url, wire`)
 -->

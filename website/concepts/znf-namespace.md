@@ -39,7 +39,6 @@ Một số skill khai báo `disable-model-invocation: true` trong frontmatter. V
 Khi viết skill mới có fan-out tốn kém, hãy nhớ cờ này. Thiếu cờ, mô hình có thể tự dispatch fan-out mà không ai yêu cầu.
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
-- `docs/handoff/zenify-kit/m2-plugin-skills.md` (`zenify skills sync` materialize `znf/` vào `~/.claude/skills/znf`, prefix `znf:` để cùng tồn tại với skill cá nhân)
 - `internal/plugin/assets/znf/skills/gate/SKILL.md` (ví dụ `disable-model-invocation: true` trên `contract-sweep`)
 - `website/reference/skills/index.md`, `website/reference/agents/index.md` (danh sách sinh tự động, agent không mang tiền tố `znf:`)
 -->

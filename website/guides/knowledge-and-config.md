@@ -28,9 +28,9 @@ flowchart LR
 
 *Đường đi của một record từ agent đến người đọc*
 
-Store thật nằm ở `~/.zenify/knowledge`, theo quy ước như `~/.npm` hay `~/.m2`. `docs/` trong workspace chỉ là view gồm symlink trỏ vào các thư mục nội dung của store: `specs/ plans/ handoff/ reference/ releases/`. Đọc và ghi qua `docs/specs/...` vẫn hoạt động bình thường vì đi xuyên symlink.
+Store thật nằm ở `~/.zenify/knowledge`, theo quy ước như `~/.npm` hay `~/.m2`. `docs/` trong workspace là thư mục thật. Năm dir của store (`specs/ plans/ handoff/ reference/ releases/`) là symlink; năm dir local (`research/ notes/ scripts/ exports/ external/`) là thư mục thật, không git, không sync. Đọc và ghi qua `docs/specs/...` vẫn hoạt động bình thường vì đi xuyên symlink.
 
-Agent là writer duy nhất. Bạn chỉ mở file qua `docs/...` trong editor để đọc, không `git clone`, không chạy git trong store. File tracked là `chmod 0444` trên máy bạn, một guardrail chống sửa tay chứ không phải cơ chế bảo mật.
+Agent là writer duy nhất. Bạn chỉ mở file qua `docs/...` trong editor để đọc, không `git clone`, không chạy git trong store. File tracked là 0644; kit không chmod, guardrail là quy ước không sửa tay.
 
 ## Lệnh
 
@@ -46,6 +46,21 @@ zenify docs sync
 ```
 
 Lệnh kiểm tra trạng thái store trước: sạch thì không chạm mạng. Có thay đổi thì commit, `pull --rebase`, rồi push. Gặp conflict, lệnh hủy rebase và giữ commit cục bộ để lượt sau thử lại. Mọi lỗi mạng đều fail-open: lệnh in cảnh báo và thoát bình thường, không chặn phiên làm việc.
+
+### `zenify docs sweep`
+
+| Cờ | Ý nghĩa |
+|---|---|
+| `--apply` | Thực hiện thay đổi. Mặc định chỉ in kế hoạch. |
+| `--no-fetch` | Bỏ `git fetch` khi tính trạng thái spec, dùng ref local. |
+| `--workspace` | Thư mục workspace; mặc định tự tìm, không có thì dùng thư mục hiện tại. |
+
+```bash
+zenify docs sweep
+zenify docs sweep --apply --no-fetch
+```
+
+Lệnh dọn plan của spec đã built hoặc superseded, handoff không ngày hoặc quá 30 ngày, reference không còn được link, và ghi dòng `**Status:**` cho spec. Mỗi file bị xóa được chép trước sang `docs/research/` hoặc `docs/notes/`. Chi tiết ở [Quy ước thư mục workspace](/concepts/workspace-layout).
 
 ### `zenify config`
 
@@ -89,11 +104,9 @@ Không chạy git trực tiếp trong store: không PR, không merge, không clo
 
 ## Xem thêm
 
-[`/reference/cli/zenify_docs_sync`](/reference/cli/zenify_docs_sync), [`/reference/cli/zenify_config`](/reference/cli/zenify_config), [`/reference/cli/zenify_rules_lint`](/reference/cli/zenify_rules_lint), [Knowledge store](/concepts/knowledge-store), [Gate fail-open](/concepts/gate-fail-open)
+[`/reference/cli/zenify_docs_sync`](/reference/cli/zenify_docs_sync), [`/reference/cli/zenify_config`](/reference/cli/zenify_config), [`/reference/cli/zenify_rules_lint`](/reference/cli/zenify_rules_lint), [`/reference/cli/zenify_docs_sweep`](/reference/cli/zenify_docs_sweep), [Knowledge store](/concepts/knowledge-store), [Quy ước thư mục workspace](/concepts/workspace-layout), [Gate fail-open](/concepts/gate-fail-open)
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
-- internal/docsgen/catalog/cli/zenify_docs.md, zenify_docs_sync.md, zenify_config.md, zenify_rules.md, zenify_rules_lint.md
-- website/concepts/knowledge-store.md (mermaid, view symlink, chmod 0444)
-- docs/handoff/zenify-kit/docs-sync-layer.md (resolve precedence, ba trạng thái máy)
-- docs/handoff/zenify-kit/team-rule-system.md (langgate marker syntax, gate ở ship)
+- internal/docsgen/catalog/cli/zenify_docs.md, zenify_docs_sync.md, zenify_docs_sweep.md, zenify_config.md, zenify_rules.md, zenify_rules_lint.md
+- website/concepts/knowledge-store.md (mermaid, view symlink)
 -->

@@ -56,8 +56,6 @@ Fail-open nghĩa là lỗi công cụ không chặn. Nó không có nghĩa một
 Một agent chạy gate rồi đi idle mà không phản hồi cũng không phải "gate sạch". Từ báo cáo, bạn không phân biệt được im lặng với kết quả sạch. Hãy hỏi lại đúng tên agent đó thay vì đọc im lặng thành kết quả tốt.
 
 <!-- Nguồn (cho người bảo trì, không hiển thị):
-- `docs/handoff/zenify-kit/m9-db-perf-gate.md` (fail-open tuyệt đối, hai tier BLOCKING/ADVISORY, cờ waive)
-- `docs/handoff/zenify-kit/m4-review.md` (fail-open ở review engine, "im lặng ≠ sạch")
 - mã nguồn git-guard trong repo kit (công cụ lỗi → không chặn; chặn chỉ khi rule khớp)
 - `./zenify db-perf --help`, `./zenify analyze --help`
 -->
