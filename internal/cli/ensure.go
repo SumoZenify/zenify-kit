@@ -93,6 +93,13 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 			apply.StrongModelEnv, apply.StrongModelDefault)
 	}
 
+	if changed, err := apply.EnsureReviewerEnv(home, false); err != nil {
+		fmt.Fprintln(stderr, "znf ensure: reviewer:", err)
+	} else if changed {
+		fmt.Fprintf(stdout, "set %s=%s in ~/.claude/settings.json (zenify reviewer picks the review engine from it)\n",
+			apply.ReviewerEnv, apply.ReviewerDefault)
+	}
+
 	if n, err := apply.EnsureKitPermissions(home, false); err != nil {
 		fmt.Fprintln(stderr, "znf ensure: permissions:", err)
 	} else if n > 0 {

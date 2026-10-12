@@ -1,0 +1,12 @@
+The handler cannot load because its database module is missing. Once that is resolved, it still contains SQL injection and an unconditional out-of-bounds access.
+
+Full review comments:
+
+- [P1] Parameterize the user-supplied search term — /private/tmp/claude-501/codexreview/src/users.js:4-4
+  When `q` contains SQL syntax, concatenating it directly into the query allows SQL injection; for example, `' OR 1=1 -- ` can bypass the name filter. Use a bound parameter containing the surrounding `%` wildcards instead of interpolating request input.
+
+- [P1] Stop iteration before the array length — /private/tmp/claude-501/codexreview/src/users.js:6-6
+  For any array returned by the query, including an empty array, the loop reaches `i === rows.length` and accesses `.name` on `undefined`. This throws before `res.json(out)`, preventing every successful search response. Change the loop condition to `i < rows.length`.
+
+- [P1] Provide the required database module — /private/tmp/claude-501/codexreview/src/users.js:1-1
+  The committed repository contains no module resolving to `./db`, so importing this handler immediately throws `MODULE_NOT_FOUND`, as confirmed by requiring `./src/users`. Include the database adapter or reference an existing resolvable module so the handler can load.

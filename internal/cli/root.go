@@ -49,6 +49,8 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newReviewDoctrineCmd())
 	root.AddCommand(newReviewAdviseGateCmd())
 	root.AddCommand(newReviewLogCmd())
+	root.AddCommand(newReviewerCmd())
+	root.AddCommand(newReviewCodexCmd())
 	root.AddCommand(newRouteLogCmd())
 	root.AddCommand(newAnalyzeCmd())
 	root.AddCommand(newDbPerfCmd())

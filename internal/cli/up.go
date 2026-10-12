@@ -411,6 +411,7 @@ func newUpCmd() *cobra.Command {
 		manifestPath   string
 		overlayPath    string
 		applyFlag      bool
+		reviewer       string
 	)
 	cmd := &cobra.Command{
 		Use:   "up",
@@ -418,6 +419,16 @@ func newUpCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := dryRunApplyConflict(applyFlag, cmd.Flags().Changed("dry-run"), dryRun); err != nil {
 				return exitcode.New(exitcode.BadArgs, err)
+			}
+			if reviewer != "" {
+				if reviewer != "agent" && reviewer != "codex" {
+					return exitcode.New(exitcode.BadArgs, fmt.Errorf("--reviewer %q: want agent or codex", reviewer))
+				}
+				if home, herr := os.UserHomeDir(); herr == nil && home != "" {
+					if err := apply.SetReviewerEnv(home, reviewer, !applyFlag); err != nil {
+						fmt.Fprintln(cmd.ErrOrStderr(), "znf up: reviewer:", err)
+					}
+				}
 			}
 			cwd, _ := os.Getwd()
 			isTTY := term.IsTerminal(int(os.Stdout.Fd()))
@@ -524,6 +535,7 @@ func newUpCmd() *cobra.Command {
 	cmd.Flags().StringVar(&workspace, "workspace", "", "workspace root (default: the workspace found from cwd or ~/.zenify/workspace; the wizard asks when there is none)")
 	cmd.Flags().StringVar(&manifestPath, "manifest", "", "path to repos.yaml (default: manifest/repos.yaml under cwd when present, else the copy embedded in the binary)")
 	cmd.Flags().StringVar(&overlayPath, "overlay", "", "path to personal overlay (default <workspace>/.zenify-overlay.yaml)")
+	cmd.Flags().StringVar(&reviewer, "reviewer", "", "review engine written to ZNF_REVIEWER in ~/.claude/settings.json: agent or codex (written only with --apply)")
 	cmd.Flags().BoolVar(&applyFlag, "apply", false, "apply changes without the interactive wizard (required for non-interactive/CI runs)")
 	return cmd
 }

@@ -108,6 +108,13 @@ func newDownCmd() *cobra.Command {
 				case removedStrong:
 					u.Step(ui.StatusOK, "env", fmt.Sprintf("gỡ %s khỏi ~/.claude/settings.json", apply.StrongModelEnv)) //znf:allow-lang
 				}
+				removedRev, rverr := apply.RemoveReviewerEnv(home, dryRun)
+				switch {
+				case rverr != nil:
+					u.Step(ui.StatusWarn, "env", fmt.Sprintf("bỏ qua (%v)", rverr)) //znf:allow-lang
+				case removedRev:
+					u.Step(ui.StatusOK, "env", fmt.Sprintf("gỡ %s khỏi ~/.claude/settings.json", apply.ReviewerEnv)) //znf:allow-lang
+				}
 				removedPerms, perr := apply.RemoveKitPermissions(home, dryRun)
 				switch {
 				case perr != nil:
