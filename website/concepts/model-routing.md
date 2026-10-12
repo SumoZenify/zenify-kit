@@ -42,7 +42,7 @@ Script duy nhất được phép chứa tên model mạnh: `~/.claude/skills/znf
 
 ## Route-log — số liệu để chỉnh ngưỡng
 
-Mỗi lần `select-route` chạy trong cook / fix / SDD / review / advisor, skill ghi một record JSON vào `.znf/route-log/` của checkout chính (`site`, `features`, `gates`, `model`, `strong`, với architect thêm `changed_decision` = memo có đổi hướng thiết kế không). Ghi best-effort, không bao giờ chặn. Đọc bằng [`zenify route-log`](/reference/cli/zenify_route-log) (`--since 30d`, `--json`): gate nào fire mà architect gần như không đổi quyết định thì nới; `manual` bị gọi không có cụm kích hoạt thì siết description. `zenify cost` in thêm token thinking của session chính và các mức effort đã gặp để đối chiếu.
+Mỗi lần `select-route` chạy trong cook / fix / SDD / review / advisor, skill ghi một record JSON vào `.znf/route-log/` của checkout chính (`site`, `features`, `gates`, `model`, `strong`, `runtime` = `claude` hoặc `codex`, với architect thêm `changed_decision` = memo có đổi hướng thiết kế không). Ghi best-effort, không bao giờ chặn. Đọc bằng [`zenify route-log`](/reference/cli/zenify_route-log) (`--since 30d`, `--json`): gate nào fire mà architect gần như không đổi quyết định thì nới; `manual` bị gọi không có cụm kích hoạt thì siết description. `zenify cost` in thêm token thinking của session chính và các mức effort đã gặp để đối chiếu.
 
 ## Đổi model
 

@@ -20,6 +20,10 @@ Cài Codex theo hướng dẫn của OpenAI, rồi chạy `zenify up` như thư�
 
 Codex bỏ qua hook chưa được trust mà không báo lỗi. Sau khi `zenify up` ghi hook mới hoặc đổi hook, mở `codex`, gõ `/hooks` và chọn trust. Đến lúc đó hook mới chạy.
 
+## Gọi skill trên Codex
+
+Gọi skill bằng `$znf:` cộng tên skill, ví dụ `$znf:fix` hoặc `$znf:ship`. Đối số là phần chữ đứng sau tên skill trong cùng tin nhắn; Codex không có `$ARGUMENTS`, nên các skill của kit không còn dùng placeholder đó. Subagent được tạo bằng tool subagent của Codex với cùng tên agent như trên Claude: `scout`, `code-reviewer`, `ui-verifier`, `researcher`, `architect`.
+
 ## Dùng Codex làm reviewer
 
 ```bash
