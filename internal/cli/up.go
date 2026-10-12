@@ -290,7 +290,11 @@ func runApply(w io.Writer, errW io.Writer, plans []reconcile.RepoPlan, m *manife
 			_, _ = fmt.Fprintf(errW, "warning: playwright bootstrap: cannot resolve home: %v\n", herr)
 		} else {
 			po := playwright.Options{
-				Runner: func(name string, args []string) error { return exec.Command(name, args...).Run() },              //nolint:gosec // G204 -- fixed trusted binary, args are internally-computed subcommands, not attacker-controlled shell input
+				Runner: func(name string, args []string) error { // stream: the chromium download is otherwise a silent multi-minute wait
+					c := exec.Command(name, args...) //nolint:gosec // G204 -- fixed trusted binary, args are internally-computed subcommands, not attacker-controlled shell input
+					c.Stdout, c.Stderr = w, errW
+					return c.Run()
+				},
 				Output: func(name string, args []string) ([]byte, error) { return exec.Command(name, args...).Output() }, //nolint:gosec // G204 -- fixed trusted binary, internally-computed args
 				Home:   home,
 				Getenv: os.Getenv,
