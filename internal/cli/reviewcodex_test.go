@@ -77,3 +77,23 @@ func TestReviewCodexProseOnly(t *testing.T) {
 		t.Fatalf("code %d stderr %q stdout %q", code, se.String(), so.String())
 	}
 }
+
+func TestReviewCodexPromptWithPack(t *testing.T) {
+	pack := t.TempDir() + "/pack.md"
+	if err := os.WriteFile(pack, []byte("add user search"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var prompt string
+	runner := func(_ context.Context, _ string, args []string) ([]byte, []byte, error) {
+		prompt = args[len(args)-1]
+		return []byte("ok\n"), nil, nil
+	}
+	var so, se bytes.Buffer
+	if code := runReviewCodex(reviewCodexOpts{Base: "b", Pack: pack, Timeout: time.Minute}, runner, &so, &se); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	want := "\nIntent:\nadd user search\nReport every finding as exactly one line:"
+	if !strings.Contains(prompt, want) {
+		t.Fatalf("prompt %q lacks %q", prompt, want)
+	}
+}

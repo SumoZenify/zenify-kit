@@ -89,6 +89,9 @@ func TestCodexReasonMatrix(t *testing.T) {
 		{errors.New("exit status 1"), "Rate limit exceeded", 0, false, "rate limit"},
 		{errors.New("exit status 1"), "got 429", 0, false, "rate limit"},
 		{errors.New("signal: killed"), "", 10 * time.Millisecond, true, "timeout 10ms"},
+		{errors.New("signal: killed"), "401 unauthorized", 10 * time.Millisecond, true, "timeout 10ms"},
+		{errors.New("signal: killed"), "rate limit", 10 * time.Millisecond, true, "timeout 10ms"},
+		{&exec.Error{Name: "codex", Err: exec.ErrNotFound}, "rate limit", 0, false, "codex không có trên PATH"}, //znf:allow-lang
 		{fakeExit(3), "boom", 0, false, "codex review exit 3"},
 	}
 	for _, c := range cases {

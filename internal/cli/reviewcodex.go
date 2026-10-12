@@ -22,10 +22,14 @@ type reviewCodexOpts struct {
 	RepoRoot string // empty = cwd
 }
 
+// codexWaitDelay bounds how long Run waits for pipes to close after ctx kills codex.
+const codexWaitDelay = 5 * time.Second
+
 type codexRunner func(ctx context.Context, name string, args []string) (stdout, stderr []byte, err error)
 
 func execCodexRunner(ctx context.Context, name string, args []string) ([]byte, []byte, error) {
 	cmd := exec.CommandContext(ctx, name, args...) // Stdin nil = /dev/null (closed)
+	cmd.WaitDelay = codexWaitDelay                 // a child holding the pipes must not outlive --timeout
 	var so, se bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &so, &se
 	err := cmd.Run()
