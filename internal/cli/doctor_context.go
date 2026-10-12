@@ -11,13 +11,15 @@ import (
 )
 
 const (
-	claudeMdMaxBytes    = 8192
-	claudeMdMaxLines    = 200
-	contextBudgetBytes  = 32768
-	shadowDetailSuffix  = " — xoá hoặc đổi tên bản cá nhân" //znf:allow-lang
-	personalKitDirName  = "znf"
-	frontmatterDelim    = "---"
-	frontmatterPathsKey = "paths:"
+	claudeMdMaxBytes     = 8192
+	claudeMdMaxLines     = 200
+	contextBudgetBytes   = 32768
+	memoryIndexWarnLines = 180
+	memoryIndexWarnBytes = 22528
+	shadowDetailSuffix   = " — xoá hoặc đổi tên bản cá nhân" //znf:allow-lang
+	personalKitDirName   = "znf"
+	frontmatterDelim     = "---"
+	frontmatterPathsKey  = "paths:"
 )
 
 // hasPathsFrontmatter reports whether b opens with a `---` frontmatter block
@@ -212,7 +214,81 @@ func manifestRepoPaths(workspace string) ([]string, error) {
 	return repos, nil
 }
 
+// workspaceRootCheck flags entries at the workspace root and under docs/ that
+// are outside the convention (rootAllowlist + repos, docsDirs).
+func workspaceRootCheck(ws string) Check {
+	return Check{Name: "workspace-root", Run: func() (bool, string) {
+		var bad []string
+		if ents, err := os.ReadDir(ws); err == nil {
+			for _, e := range ents {
+				n := e.Name()
+				if n == "repos" || rootAllowlist[n] {
+					continue
+				}
+				if n == ".znf" {
+					n += " (release-repos.txt → .zenify/)"
+				}
+				bad = append(bad, n)
+			}
+		}
+		known := map[string]bool{}
+		for _, d := range docsDirs {
+			known[d] = true
+		}
+		if ents, err := os.ReadDir(filepath.Join(ws, "docs")); err == nil {
+			for _, e := range ents {
+				n := e.Name()
+				if strings.HasPrefix(n, ".") || known[n] {
+					continue
+				}
+				bad = append(bad, "docs/"+n)
+			}
+		}
+		if len(bad) == 0 {
+			return true, "workspace đúng quy ước" //znf:allow-lang
+		}
+		shown := bad
+		suffix := ""
+		if len(shown) > 10 {
+			shown, suffix = shown[:10], ", …"
+		}
+		return false, fmt.Sprintf("workspace có %d entry ngoài quy ước: %s%s", len(bad), strings.Join(shown, ", "), suffix) //znf:allow-lang
+	}}
+}
+
+// memoryIndexCheck warns when MEMORY.md nears the 200-line / 25 KB load cap.
+func memoryIndexCheck(ws string) Check {
+	return Check{Name: "memory-index", Run: func() (bool, string) {
+		b, err := os.ReadFile(filepath.Join(ws, ".claude", "memory", "MEMORY.md"))
+		if err != nil {
+			return true, "không có MEMORY.md" //znf:allow-lang
+		}
+		lines := bytes.Count(b, []byte("\n"))
+		if len(b) > 0 && b[len(b)-1] != '\n' {
+			lines++
+		}
+		if lines >= memoryIndexWarnLines || len(b) >= memoryIndexWarnBytes {
+			return false, fmt.Sprintf("MEMORY.md %d dòng / %d byte, trần 200 dòng / 25 KB — chạy /prune-memory", lines, len(b)) //znf:allow-lang
+		}
+		return true, fmt.Sprintf("MEMORY.md %d dòng / %d byte", lines, len(b)) //znf:allow-lang
+	}}
+}
+
+// wsCheck wraps a workspace-scoped check for the registry.
+func wsCheck(name string, mk func(ws string) Check) Check {
+	return Check{Name: name, Run: func() (bool, string) {
+		cwd, _ := os.Getwd()
+		ws, _, ok := resolveWorkspace(cwd, "", os.Getenv, os.UserHomeDir)
+		if !ok {
+			return true, "không trong workspace" //znf:allow-lang
+		}
+		return mk(ws).Run()
+	}}
+}
+
 func registerContextChecks() {
+	RegisterCheck(wsCheck("workspace-root", workspaceRootCheck))
+	RegisterCheck(wsCheck("memory-index", memoryIndexCheck))
 	RegisterCheck(Check{Name: "shadow", Run: func() (bool, string) {
 		home, err := os.UserHomeDir()
 		if err != nil {
