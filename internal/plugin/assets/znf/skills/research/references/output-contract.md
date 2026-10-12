@@ -55,7 +55,7 @@ claims: 6 · not found: 1 · file: /tmp/znf-research-<slug>/worker-1.md
 ## Lead return (at most 40 lines)
 
 ```
-file: docs/reference/<repo>/2026-09-20-<slug>.md
+file: docs/research/<repo>/2026-09-20-<slug>.md
 question: <sentence> · done when: <criterion>
 sub-questions: <n> · workers: <n> sonnet + 1 haiku verifier · est. <USD>
 verified 11 · flagged 2 (1 QUOTE-MISMATCH, 1 DEAD-URL) · not found 3

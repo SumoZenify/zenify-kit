@@ -30,7 +30,7 @@ flowchart TD
     B --> C[Scope: câu hỏi con theo ranh giới nguồn, cỡ 1 / 2-4 / 5+, cap tool-call]
     C --> D[N worker znf:researcher sonnet, một tin nhắn, mỗi worker ghi file tạm]
     D --> E[Verifier znf:researcher haiku: fetch lại mọi URL, so quote]
-    E --> F[Lead viết docs/reference/repo/YYYY-MM-DD-slug.md]
+    E --> F[Lead viết docs/research/repo/YYYY-MM-DD-slug.md]
     F --> G[Trả phiên chính ≤ 40 dòng: path, scope, số đếm, kết luận]
 ```
 
@@ -42,7 +42,7 @@ Bảng phát hiện có cột trạng thái verify. Chỉ hàng `VERIFIED` đư�
 
 ## Ngôn ngữ
 
-Brief gửi worker và verifier viết **tiếng Anh**, dù bạn gõ câu hỏi bằng tiếng Việt: worker tìm nguồn tiếng Anh, verifier haiku so claim với quote cùng một ngôn ngữ. Lead chạy fork nên thừa hưởng ngôn ngữ của bạn; skill buộc nó dịch câu hỏi trước khi dispatch. Chỉ file báo cáo cuối trong `docs/reference/` viết tiếng Việt cho team đọc. Quy tắc chung cho mọi skill: văn bản máy đọc (brief subagent, commit, memory, rule) luôn tiếng Anh, chỉ artifact người đọc theo ngôn ngữ project.
+Brief gửi worker và verifier viết **tiếng Anh**, dù bạn gõ câu hỏi bằng tiếng Việt: worker tìm nguồn tiếng Anh, verifier haiku so claim với quote cùng một ngôn ngữ. Lead chạy fork nên thừa hưởng ngôn ngữ của bạn; skill buộc nó dịch câu hỏi trước khi dispatch. Chỉ file báo cáo cuối trong `docs/research/` viết tiếng Việt cho team đọc. Quy tắc chung cho mọi skill: văn bản máy đọc (brief subagent, commit, memory, rule) luôn tiếng Anh, chỉ artifact người đọc theo ngôn ngữ project.
 
 ## Chi phí
 
