@@ -16,10 +16,10 @@ func TestCodexHooksCheck_Wired8(t *testing.T) {
 		t.Fatal(err)
 	}
 	ok, d := codexHooksCheck(home, true).Run()
-	if !ok || !strings.Contains(d, "wired 8/8") || strings.HasPrefix(d, "cảnh báo:") {
+	if !ok || !strings.Contains(d, "wired 8/8") || strings.HasPrefix(d, "cảnh báo:") { //znf:allow-lang
 		t.Fatalf("ok=%v %q", ok, d)
 	}
-	if !strings.Contains(d, "trust: không kiểm tra được, xem /hooks") {
+	if !strings.Contains(d, "trust: không kiểm tra được, xem /hooks") { //znf:allow-lang
 		t.Fatalf("no trust line: %q", d)
 	}
 }
@@ -35,7 +35,7 @@ func TestCodexHooksCheck_FiveWarns(t *testing.T) {
 		t.Fatal(err)
 	}
 	ok, d := codexHooksCheck(home, true).Run()
-	if !ok || !strings.HasPrefix(d, "cảnh báo:") || !strings.Contains(d, "wired 5/8") {
+	if !ok || !strings.HasPrefix(d, "cảnh báo:") || !strings.Contains(d, "wired 5/8") { //znf:allow-lang
 		t.Fatalf("ok=%v %q", ok, d)
 	}
 }
@@ -49,7 +49,7 @@ func TestCodexHooksCheck_NoFile(t *testing.T) {
 
 func TestCodexHooksCheck_NoCodex(t *testing.T) {
 	ok, d := codexHooksCheck(t.TempDir(), false).Run()
-	if !ok || d != "codex không cài" {
+	if !ok || d != "codex không cài" { //znf:allow-lang
 		t.Fatalf("%v %q", ok, d)
 	}
 }
@@ -62,7 +62,7 @@ func TestReviewerCheck_CodexMissingFromPath(t *testing.T) {
 		return ""
 	}
 	ok, d := reviewerCheck(env, false).Run()
-	if !ok || !strings.Contains(d, "agent (codex không có trên PATH)") {
+	if !ok || !strings.Contains(d, "agent (codex không có trên PATH)") { //znf:allow-lang
 		t.Fatalf("%v %q", ok, d)
 	}
 }
@@ -77,10 +77,10 @@ func TestAgentsMdCheck(t *testing.T) {
 	os.WriteFile(filepath.Join(ws, "repos", "a", "AGENTS.md"), []byte("x"), 0o644)
 	os.WriteFile(filepath.Join(ws, "repos", "c", "AGENTS.md"), make([]byte, 33*1024), 0o644)
 	ok, d := agentsMdCheck(ws, []string{"repos/a", "repos/b", "repos/c"}).Run()
-	if !ok || !strings.HasPrefix(d, "cảnh báo:") {
+	if !ok || !strings.HasPrefix(d, "cảnh báo:") { //znf:allow-lang
 		t.Fatalf("%v %q", ok, d)
 	}
-	for _, l := range []string{"repos/a/AGENTS.md: có", "repos/b/AGENTS.md: thiếu", "repos/c/AGENTS.md: vượt 32 KiB"} {
+	for _, l := range []string{"repos/a/AGENTS.md: có", "repos/b/AGENTS.md: thiếu", "repos/c/AGENTS.md: vượt 32 KiB"} { //znf:allow-lang
 		if !strings.Contains(d, l) {
 			t.Fatalf("missing %q in %q", l, d)
 		}
