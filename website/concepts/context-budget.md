@@ -45,3 +45,10 @@ Kit không dùng `TodoWrite`/`TaskCreate`. Đo trên bốn phiên (2026-09-20): 
 - Chạy `/context` một lần trên máy mình. MCP server nào bạn không dùng trong workspace này thì tắt; mỗi server chiếm vài nghìn token schema ở mọi turn.
 - Auto-compact: kit không đặt ngưỡng. Trên model 1M, mặc định nổ ở khoảng 967k; `/autocompact 300k` hay thấp hơn là lựa chọn cá nhân, cân giữa số lần compact và kích cỡ context.
 - `/clear` giữa hai việc không liên quan là miễn phí và hiệu quả nhất.
+
+## Kiểm tra bằng `zenify doctor`
+
+Hai check đo phần context nạp mọi phiên, không phụ thuộc runtime:
+
+- `context-budget`: cộng byte của `CLAUDE.md` workspace, `~/.claude/CLAUDE.md` và các rule không có `paths:` trong `.claude/rules/` của workspace lẫn `~/.claude/rules/`. Cảnh báo khi tổng vượt 32 KiB hoặc `CLAUDE.md` workspace vượt 8 KiB. Với mỗi repo trong manifest, in byte và số dòng của `CLAUDE.md`, cảnh báo khi vượt 8 KiB, vượt 200 dòng, hoặc có cây thư mục (`├──`, `└──`).
+- `shadow`: liệt kê skill, agent hoặc rule cá nhân trong `~/.claude` trùng tên với bản của kit (skill và agent) hoặc của workspace (rule). Bản cá nhân nạp cạnh bản kit nên context nhân đôi; xoá hoặc đổi tên bản cá nhân.

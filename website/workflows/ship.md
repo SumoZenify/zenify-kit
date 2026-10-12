@@ -57,7 +57,7 @@ flowchart TD
 | 5 | Review độc lập trên diff tính từ `git merge-base <baseRef> HEAD`, nên commit mới trên base không hiện thành xoá giả. CRITICAL/HIGH vào vòng sửa, MEDIUM/LOW lên board | Đọc finding |
 | Vòng sửa | Sửa hết finding mở trong một wave, chạy lại check liên quan, tối đa 2 vòng | Nếu còn mở sau vòng 2, ship dừng, không commit, và báo bạn |
 | 6 | Xác định thứ tự deploy (đa service) | Đọc thứ tự |
-| 7 | Ghi board vào file, commit và push branch, mở PR | Đọc board bằng `cat`, không đọc bản tóm tắt. Nhận PR URL |
+| 7 | Ghi board vào file, commit và push branch, mở PR với body cố định: `## Nghiệm thu` (các SC của spec), `## Review còn mở` (dòng deferred/parked từ ledger SDD), rồi tóm tắt và kiểm chứng | Đọc board bằng `cat`, không đọc bản tóm tắt. Nhận PR URL |
 
 ## Kết quả
 
