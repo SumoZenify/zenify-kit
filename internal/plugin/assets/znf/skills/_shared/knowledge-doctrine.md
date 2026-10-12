@@ -105,14 +105,18 @@ it must: **F3 > F2 > F1** — an F3 gate (enforced) beats an F2 path-scoped rule
 a matching file) beats an F1 constitution line (ambient prose). Promote a `type: feedback` memory to
 the right form, then **retire it from memory (MOVE, not a COPY)** so the rule has one home.
 
-## Nominate → ratify — how a new rule enters
+## Where files go
 
-A rule is never created fully automatically (a false rule is asserted confidently forever — worse
-than a missing one). An agent NOMINATES a candidate; a human RATIFIES it before it becomes a rule.
+The workspace root holds only `repos/ docs/ CLAUDE.md AGENTS.md .claude/ .zenify/ .zenify-overlay.yaml` (plus `.git .idea .vscode .DS_Store`). `docs/` holds exactly ten names: five store dirs (synced) `specs plans reference handoff releases`, five local dirs (never synced) `research notes scripts exports external`. Nothing sits directly under `docs/`. The `write-guard` hook denies anything else and names the right place.
 
-- Candidate is written to the synced store `reference/rule-candidates/<author>.md`, per-author.
-- Ratify-gate: a candidate becomes a rule only when a reviewer flips its `Status: pending` to
-  `ratified` and promotes it into F1/F2/F3. The agent does not create a rule from a candidate.
+- temp, probes, intermediate output → the session scratchpad (`$TMPDIR`)
+- spec → `docs/specs/<repo>/`; plan → `docs/plans/<repo>/`; release report → `docs/releases/`
+- research draft → `docs/research/<repo>/`; a spec that links it moves it to `docs/reference/<repo>/`
+- session note → `docs/notes/`; handoff to someone else → `docs/handoff/` (swept after 30 days)
+- script the user runs (data fix, backfill, `--dry-run`) and its result files → `docs/scripts/<repo>/`
+- deliverable for people (docx, xlsx, pdf, report) → `docs/exports/`; document the user gives you → `docs/external/`
+- Playwright screenshot/snapshot → call `browser_take_screenshot` without a `filename`; the MCP output dir is pinned
+- code → `repos/<repo>/.worktrees/<slug>/`; kit state → `<repo>/.znf/` (gitignored)
 
 ## Retirement — taking a thing OUT
 

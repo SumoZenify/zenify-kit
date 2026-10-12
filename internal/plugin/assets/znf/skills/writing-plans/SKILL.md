@@ -12,8 +12,6 @@ Write implementation plans for an engineer who has not seen this codebase or thi
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** the worktree is created with `wt new` (znf:discipline §8) at execution time.
-
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
 
@@ -132,6 +130,7 @@ A step is done when the implementer can write exactly one reasonable thing from 
 - **Code step:** exact signature, file, and the values the spec pins. The implementer writes the body; a body appears only for an algorithm the signature and tests do not determine, or exact copy the spec fixes.
 - **Verification step:** the command and the output that means pass.
 - **Reference to another task:** point at its Interfaces block; do not repeat its code.
+- **Reviewer output:** never pasted into the plan — findings, transcripts and verdicts live in the SDD ledger.
 
 A plan records decisions, not code. Forbidden placeholders: "TBD"/"TODO", "similar to Task N", a name no task defines, "add appropriate error handling".
 

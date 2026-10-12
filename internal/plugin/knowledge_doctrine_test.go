@@ -55,8 +55,6 @@ func TestKnowledgeDoctrine_RuleSystemExtension(t *testing.T) {
 		"Team-reach",           // the reach axis
 		"flat store",           // memory is one flat per-user store
 		"F3 > F2 > F1",         // promotion order for machine-checkable norms
-		"Ratify",               // nominate→ratify gate
-		"rule-candidates",      // where a candidate is written
 	} {
 		if !strings.Contains(s, want) {
 			t.Errorf("knowledge-doctrine.md missing %q", want)
