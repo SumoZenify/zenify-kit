@@ -309,4 +309,5 @@ func registerDefaultChecks() {
 	RegisterCheck(gitIdentityCheck())
 	RegisterCheck(pluginCheck())
 	registerCodexChecks()
+	registerContextChecks()
 }

@@ -109,17 +109,9 @@ func registerCodexChecks() {
 		if !ok {
 			return agentsMdCheck("", nil).Run()
 		}
-		m, _, err := loadKitManifest("", filepath.Join(ws, ".zenify-overlay.yaml"))
+		repos, err := manifestRepoPaths(ws)
 		if err != nil {
 			return false, fmt.Sprintf("manifest không đọc được: %v", err) //znf:allow-lang
-		}
-		var repos []string
-		for _, r := range m.Repos {
-			p := r.Path
-			if p == "" {
-				p = filepath.Join("repos", r.Name)
-			}
-			repos = append(repos, p)
 		}
 		return agentsMdCheck(ws, repos).Run()
 	}})
