@@ -21,6 +21,25 @@ import (
 // Override with --dir for a different workspace (stays project-agnostic).
 const defaultDocsRepo = "docs"
 
+// storeDirs are the docs/ entries linked into the knowledge store; localDirs are
+// real directories that stay on this machine. docsDirs is every known entry.
+var storeDirs = []string{"specs", "plans", "reference", "handoff", "releases"}
+var localDirs = []string{"research", "notes", "scripts", "exports", "external"}
+var docsDirs = append(append([]string{}, storeDirs...), localDirs...)
+
+// ensureLocalDirs creates the local dirs under viewDir. Errors become notes
+// (fail-open); no error, no notes.
+func ensureLocalDirs(viewDir string) []string {
+	var notes []string
+	for _, d := range localDirs {
+		p := filepath.Join(viewDir, d)
+		if err := os.MkdirAll(p, 0o755); err != nil {
+			notes = append(notes, "docs local: "+p+": "+err.Error())
+		}
+	}
+	return notes
+}
+
 // docsSyncCore is the callable core of `docs sync`, extracted so hook
 // dispatch (hookactions.go) can invoke it directly without exec'ing the
 // binary. It resolves the docs store from workspace (empty => cwd), then
@@ -41,6 +60,9 @@ func docsSyncCore(workspace string, errW io.Writer) error {
 		for _, n := range docsview.EnsureView(docsview.OSFS{}, dir, viewDir) {
 			u.Note(n)
 		}
+	}
+	for _, n := range ensureLocalDirs(viewDir) {
+		u.Note(n)
 	}
 	return nil
 }
@@ -71,6 +93,9 @@ func newDocsCmd() *cobra.Command {
 					for _, n := range docsview.EnsureView(docsview.OSFS{}, dir, viewDir) {
 						uErr.Note(n)
 					}
+				}
+				for _, n := range ensureLocalDirs(viewDir) {
+					uErr.Note(n)
 				}
 				return nil
 			}

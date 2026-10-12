@@ -153,10 +153,12 @@ func ensureDocsStore(w io.Writer, errW io.Writer, git gitx.Runner, workspace str
 		}
 	}
 	viewDir := filepath.Join(workspace, defaultDocsRepo)
-	if viewDir == store {
-		return // not migrated yet — store IS the workspace docs dir, nothing to link
+	if viewDir != store { // not migrated yet when equal — store IS the workspace docs dir, nothing to link
+		for _, n := range docsview.EnsureView(docsview.OSFS{}, store, viewDir) {
+			_, _ = fmt.Fprintln(w, n)
+		}
 	}
-	for _, n := range docsview.EnsureView(docsview.OSFS{}, store, viewDir) {
+	for _, n := range ensureLocalDirs(viewDir) {
 		_, _ = fmt.Fprintln(w, n)
 	}
 }

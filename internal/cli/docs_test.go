@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -71,5 +72,57 @@ func TestDocsSyncEnsureViewSkippedWhenViewEqualsDir(t *testing.T) {
 
 	if strings.Contains(errBuf.String(), "docs view:") {
 		t.Fatalf("EnsureView must be skipped when viewDir==dir, but got note: %s", errBuf.String())
+	}
+}
+
+func TestStoreDirsPinned(t *testing.T) {
+	want := []string{"specs", "plans", "reference", "handoff", "releases"}
+	if !reflect.DeepEqual(storeDirs, want) {
+		t.Fatalf("storeDirs = %v, want %v", storeDirs, want)
+	}
+	if len(docsDirs) != 10 {
+		t.Fatalf("docsDirs = %v", docsDirs)
+	}
+}
+
+// SC-1 (migrated): five local dirs are real dirs, five store dirs are links; second run adds no note.
+func TestDocsSyncCreatesLocalDirs(t *testing.T) {
+	ws, store := t.TempDir(), t.TempDir()
+	os.MkdirAll(filepath.Join(store, "specs"), 0o755)
+	run := func() string {
+		cmd := newDocsCmd()
+		var e bytes.Buffer
+		cmd.SetErr(&e)
+		cmd.SetArgs([]string{"sync", "--workspace", ws, "--dir", store})
+		cmd.Execute()
+		return e.String()
+	}
+	run()
+	for _, d := range localDirs {
+		fi, err := os.Lstat(filepath.Join(ws, "docs", d))
+		if err != nil || !fi.IsDir() || fi.Mode()&os.ModeSymlink != 0 {
+			t.Fatalf("%s: %v %v", d, fi, err)
+		}
+	}
+	if fi, _ := os.Lstat(filepath.Join(ws, "docs", "specs")); fi.Mode()&os.ModeSymlink == 0 {
+		t.Fatal("specs must be a link")
+	}
+	if out := run(); strings.Contains(out, "docs local:") {
+		t.Fatalf("second run noted: %s", out)
+	}
+}
+
+// SC-1 (not migrated): viewDir == store, five dirs created inside the store.
+func TestDocsSyncLocalDirsWhenViewEqualsDir(t *testing.T) {
+	ws := t.TempDir()
+	dir := filepath.Join(ws, "docs")
+	os.MkdirAll(dir, 0o755)
+	cmd := newDocsCmd()
+	cmd.SetArgs([]string{"sync", "--workspace", ws, "--dir", dir})
+	cmd.Execute()
+	for _, d := range localDirs {
+		if fi, err := os.Stat(filepath.Join(dir, d)); err != nil || !fi.IsDir() {
+			t.Fatalf("%s missing", d)
+		}
 	}
 }
