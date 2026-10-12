@@ -120,26 +120,33 @@ func Plan(fs FS, store string, statuses []speclife.Status, now time.Time) ([]Act
 	// A source that could not be read might be the one linking a reference, so any read failure
 	// skips the rule rather than deleting on incomplete evidence.
 	var sources []string
-	before := len(notes)
+	sourceErr := false
 	for _, dir := range []string{"specs", "plans", ".config"} {
-		for _, p := range walk(dir) {
+		files, err := walkFiles(fs, abs(dir))
+		if err != nil {
+			sourceErr = true
+			notes = append(notes, "docs sweep: read "+dir+": "+err.Error())
+		}
+		for _, f := range files {
+			p := path.Join(dir, f)
 			if deletedPlans[p] {
 				continue
 			}
 			if b, err := fs.ReadFile(abs(p)); err == nil {
 				sources = append(sources, string(b))
 			} else {
+				sourceErr = true
 				notes = append(notes, "docs sweep: read "+p+": "+err.Error())
 			}
 		}
 	}
-	for _, p := range walk("reference") {
-		if len(notes) > before {
-			notes = append(notes, "docs sweep: skip reference rule: a link source could not be read")
-			break
-		}
-		if !linked(sources, p) {
-			acts = append(acts, Action{Kind: KindDeleteReference, Path: p, Detail: "unlinked"})
+	if sourceErr {
+		notes = append(notes, "docs sweep: skip reference rule: a link source could not be read")
+	} else {
+		for _, p := range walk("reference") {
+			if !linked(sources, p) {
+				acts = append(acts, Action{Kind: KindDeleteReference, Path: p, Detail: "unlinked"})
+			}
 		}
 	}
 

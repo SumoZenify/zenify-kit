@@ -16,10 +16,11 @@ import (
 type memFS struct {
 	files     map[string][]byte
 	failWrite map[string]bool
+	failRead  map[string]bool // ReadFile / ReadDir of these paths fail
 }
 
 func newMemFS(m map[string]string) *memFS {
-	fs := &memFS{files: map[string][]byte{}, failWrite: map[string]bool{}}
+	fs := &memFS{files: map[string][]byte{}, failWrite: map[string]bool{}, failRead: map[string]bool{}}
 	for p, c := range m {
 		fs.files[p] = []byte(c)
 	}
@@ -27,6 +28,9 @@ func newMemFS(m map[string]string) *memFS {
 }
 
 func (f *memFS) ReadDir(p string) ([]os.DirEntry, error) {
+	if f.failRead[p] {
+		return nil, os.ErrPermission
+	}
 	prefix := strings.TrimSuffix(p, "/") + "/"
 	seen := map[string]bool{}
 	var out []os.DirEntry
@@ -50,6 +54,9 @@ func (f *memFS) ReadDir(p string) ([]os.DirEntry, error) {
 }
 
 func (f *memFS) ReadFile(p string) ([]byte, error) {
+	if f.failRead[p] {
+		return nil, os.ErrPermission
+	}
 	b, ok := f.files[p]
 	if !ok {
 		return nil, os.ErrNotExist
@@ -274,5 +281,26 @@ func TestApplyCopyFailureKeepsFile(t *testing.T) {
 	}
 	if _, err := fs.Stat("/s/handoff/ROADMAP.md"); err != nil {
 		t.Fatal("deleted despite copy failure")
+	}
+}
+
+func TestPlan_UnreadableSourceKeepsAllReferences(t *testing.T) {
+	fs := newMemFS(map[string]string{"/s/specs/s/2026-01-01-one-design.md": "", "/s/reference/r/a.md": "", "/s/reference/r/b.md": ""})
+	fs.failRead["/s/specs/s/2026-01-01-one-design.md"] = true
+	acts, notes := Plan(fs, "/s", nil, time.Now())
+	assertPaths(t, acts, KindDeleteReference, nil)
+	if !strings.Contains(strings.Join(notes, "\n"), "skip reference rule") {
+		t.Fatalf("no skip note: %v", notes)
+	}
+}
+
+func TestPlan_ReferenceWalkErrorDoesNotSkipRule(t *testing.T) {
+	// Sources are complete; a failing reference subdir must not stop the rule for files listed.
+	fs := newMemFS(map[string]string{"/s/specs/.keep": "", "/s/reference/a.md": "", "/s/reference/x/b.md": ""})
+	fs.failRead["/s/reference/x"] = true
+	acts, notes := Plan(fs, "/s", nil, time.Now())
+	assertPaths(t, acts, KindDeleteReference, []string{"reference/a.md"})
+	if strings.Contains(strings.Join(notes, "\n"), "skip reference rule") {
+		t.Fatalf("rule skipped on a reference walk error: %v", notes)
 	}
 }
