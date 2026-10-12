@@ -16,7 +16,7 @@ func (nopRunner) Run(dir string, args ...string) ([]byte, error) { return nil, n
 // SC-7: production source (excluding _test.go) of internal/release + internal/cli
 // must NOT hardcode a zenify repo identifier → keeps the kit project-agnostic.
 func TestNoZenifyRepoIdentifiersInSource(t *testing.T) {
-	// Ban identifiers of repos THAT PARTICIPATE in release (this list must live in .znf/release-repos.txt).
+	// Ban identifiers of repos THAT PARTICIPATE in release (this list must live in .zenify/release-repos.txt).
 	// Deliberate exception: "docs" is the record-layer repo (M6a, renamed from zenify-knowledge)
 	// used as the default out-dir, and already has the --out-dir flag to override → not banned.
 	banned := []string{
@@ -41,7 +41,7 @@ func TestNoZenifyRepoIdentifiersInSource(t *testing.T) {
 			src := string(b)
 			for _, id := range banned {
 				if strings.Contains(src, id) {
-					t.Errorf("%s/%s contains zenify repo identifier %q — kit must stay project-agnostic (move it into .znf/release-repos.txt)", d, name, id)
+					t.Errorf("%s/%s contains zenify repo identifier %q — kit must stay project-agnostic (move it into .zenify/release-repos.txt)", d, name, id)
 				}
 			}
 		}

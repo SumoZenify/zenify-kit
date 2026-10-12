@@ -34,12 +34,15 @@ func Resolve(r gitx.Runner, workspace string, n int,
 	return repos, nil
 }
 
-// pinList reads `.znf/release-repos.txt` (one repo per line, `#`=comment). ok=false if the file
+// pinList reads `.zenify/release-repos.txt`, falling back to the legacy `.znf/release-repos.txt` (one repo per line, `#`=comment). ok=false if the file
 // cannot be read (→ caller auto-detects). Warning: the file EXISTS but is comments-only → ok=true
 // with an EMPTY list (scans 0 repos) — this is intentional: an empty pin means "no repos"; to get
 // auto-detect back, DELETE the file.
 func pinList(workspace string, readFile func(string) ([]byte, error)) ([]string, bool) {
-	b, err := readFile(filepath.Join(workspace, ".znf", "release-repos.txt"))
+	b, err := readFile(filepath.Join(workspace, ".zenify", "release-repos.txt"))
+	if err != nil {
+		b, err = readFile(filepath.Join(workspace, ".znf", "release-repos.txt"))
+	}
 	if err != nil {
 		return nil, false
 	}
