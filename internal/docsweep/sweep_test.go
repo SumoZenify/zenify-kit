@@ -206,3 +206,32 @@ func TestPlan_MissingDirsAreEmpty(t *testing.T) { // Review Focus 3
 		t.Fatalf("acts=%v notes=%v", acts, notes)
 	}
 }
+
+func TestRewriteHeader(t *testing.T) {
+	cases := []struct {
+		name, in, want string
+		state          speclife.State
+		changed        bool
+	}{
+		{"replace-en", "# T\n\n**Repo:** k\n**Status:** Draft\n\n---\n", "# T\n\n**Repo:** k\n**Status:** built\n\n---\n", "built", true},
+		{"insert-after-header", "# T\n\n**Repo:** k\n**Ngày:** 1\n\n---\n", "# T\n\n**Repo:** k\n**Ngày:** 1\n**Trạng thái:** planned\n\n---\n", "planned", true}, //znf:allow-lang
+		{"insert-after-h1", "# T\n\nBody\n", "# T\n\n**Trạng thái:** planned\n\nBody\n", "planned", true},                                                         //znf:allow-lang
+		{"already-right", "# T\n\n**Trạng thái:** built\n", "# T\n\n**Trạng thái:** built\n", "built", false},                                                     //znf:allow-lang
+		{"no-h1", "Body only\n", "Body only\n", "planned", false},
+		{"only-first-line", "# T\n\n**Status:** Draft\n\n## B\n**Status:** Draft\n", "# T\n\n**Status:** built\n\n## B\n**Status:** Draft\n", "built", true}, // Review Focus 4
+	}
+	for _, c := range cases {
+		out, changed, _ := rewriteHeader([]byte(c.in), c.state)
+		if string(out) != c.want || changed != c.changed {
+			t.Errorf("%s: changed=%v\n%q", c.name, changed, out)
+		}
+	}
+}
+
+func TestPlan_HeaderActions(t *testing.T) { // SC-6
+	fs := newMemFS(map[string]string{"/s/specs/r/2026-01-01-a-design.md": "# a\n\n**Status:** Draft\n", "/s/specs/r/2026-01-02-b-design.md": "# b\n\n**Repo:** r\n\n---\n",
+		"/s/specs/r/2026-01-03-c-design.md": "# c\n\n**Trạng thái:** built\n", "/s/specs/r/2026-01-04-d-design.md": "# d\n"}) //znf:allow-lang
+	acts, _ := Plan(fs, "/s", []speclife.Status{st("specs/r/2026-01-01-a-design.md", "built", false), st("specs/r/2026-01-02-b-design.md", "planned", false),
+		st("specs/r/2026-01-03-c-design.md", "built", false), st("specs/r/2026-01-04-d-design.md", "unknown", false)}, time.Now())
+	assertPaths(t, acts, KindHeader, []string{"specs/r/2026-01-01-a-design.md", "specs/r/2026-01-02-b-design.md"})
+}

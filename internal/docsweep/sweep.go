@@ -60,6 +60,14 @@ const handoffMaxAge = 30 * 24 * time.Hour
 
 var datePrefix = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`)
 
+var (
+	statusLine = regexp.MustCompile(`^\*\*(Trạng thái|Status):\*\*\s*(.*)$`) //znf:allow-lang
+	labelLine  = regexp.MustCompile(`^\*\*[^*]+:\*\*`)
+)
+
+// statusLabel is the label rewriteHeader inserts when a spec has no status line.
+const statusLabel = "**Trạng thái:** " //znf:allow-lang
+
 // Plan computes the sweep's actions from the store contents and the spec statuses. It never
 // writes. Notes report per-directory read failures; a missing directory is simply empty.
 func Plan(fs FS, store string, statuses []speclife.Status, now time.Time) ([]Action, []string) {
@@ -124,6 +132,23 @@ func Plan(fs FS, store string, statuses []speclife.Status, now time.Time) ([]Act
 		}
 	}
 
+	// Status headers of specs whose state is known.
+	for _, s := range statuses {
+		if !strings.HasSuffix(s.Path, "-design.md") || s.State == speclife.StateUnknown {
+			continue
+		}
+		b, err := fs.ReadFile(abs(s.Path))
+		if err != nil {
+			notes = append(notes, "docs sweep: read "+s.Path+": "+err.Error())
+			continue
+		}
+		if _, changed, note := rewriteHeader(b, s.State); changed {
+			acts = append(acts, Action{Kind: KindHeader, Path: s.Path, Detail: note})
+		} else if note != "" {
+			notes = append(notes, "docs sweep: skip header "+s.Path+" "+note)
+		}
+	}
+
 	sort.SliceStable(acts, func(i, j int) bool {
 		if acts[i].Kind != acts[j].Kind {
 			return kindOrder[acts[i].Kind] < kindOrder[acts[j].Kind]
@@ -140,6 +165,58 @@ func linked(sources []string, p string) bool {
 		}
 	}
 	return false
+}
+
+// rewriteHeader sets a spec's status header to state. The first "**Trạng thái:**"/"**Status:**" //znf:allow-lang
+// line has its value replaced (label kept); with none, a status line is inserted after the last
+// "**Label:**" line before the first "---" or "## ", else after the first H1 framed by blank lines.
+// note is the action detail ("<old> → <state>" / "insert → <state>") or, unchanged, why ("<no H1>").
+func rewriteHeader(body []byte, state speclife.State) (out []byte, changed bool, note string) {
+	lines := strings.Split(string(body), "\n")
+	for i, l := range lines {
+		m := statusLine.FindStringSubmatch(l)
+		if m == nil {
+			continue
+		}
+		old := strings.TrimSpace(m[2])
+		if old == string(state) {
+			return body, false, ""
+		}
+		lines[i] = "**" + m[1] + ":** " + string(state)
+		return []byte(strings.Join(lines, "\n")), true, old + " → " + string(state)
+	}
+	note = "insert → " + string(state)
+	status := statusLabel + string(state)
+	lastLabel := -1
+	for i, l := range lines {
+		if l == "---" || strings.HasPrefix(l, "## ") {
+			break
+		}
+		if labelLine.MatchString(l) {
+			lastLabel = i
+		}
+	}
+	if lastLabel >= 0 {
+		return []byte(strings.Join(insertAt(lines, lastLabel+1, status), "\n")), true, note
+	}
+	for i, l := range lines {
+		if !strings.HasPrefix(l, "# ") {
+			continue
+		}
+		rest := lines[i+1:]
+		if len(rest) > 0 && rest[0] == "" {
+			rest = rest[1:] // reuse the existing blank line instead of doubling it
+		}
+		res := append(append([]string{}, lines[:i+1]...), "", status, "")
+		res = append(res, rest...)
+		return []byte(strings.Join(res, "\n")), true, note
+	}
+	return body, false, "<no H1>"
+}
+
+func insertAt(lines []string, i int, l string) []string {
+	res := append(append([]string{}, lines[:i]...), l)
+	return append(res, lines[i:]...)
 }
 
 // handoffDate returns the date of the first segment of rel that starts with a parseable
