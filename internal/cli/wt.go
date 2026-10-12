@@ -355,6 +355,9 @@ func newWtPromoteCmd() *cobra.Command {
 	}
 }
 
+// sweepDocs is the docs sweep run after wt sweep; a var so tests can stub it.
+var sweepDocs = docsSweepCore
+
 func newWtSweepCmd() *cobra.Command {
 	var dry, fetch, all bool
 	c := &cobra.Command{
@@ -372,22 +375,36 @@ func newWtSweepCmd() *cobra.Command {
 					uiErr(cmd).Note("wt: --all always fetches; --fetch is redundant here")
 				}
 				host, _ := os.Hostname()
-				return wt.RunSweepAll(wt.SweepAllOptions{
+				err := wt.RunSweepAll(wt.SweepAllOptions{
 					WorkspaceRoot: ws, Host: host, DryRun: dry, Pid: os.Getpid(), Now: time.Now().Unix(),
 					Runner: gitx.ExecRunner(), FetchRunner: gitx.TimeoutRunner(5 * time.Second),
 					Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(),
 				})
+				if err == nil {
+					if e := sweepDocs(ws, !dry, true, cmd.ErrOrStderr()); e != nil {
+						uiErr(cmd).Note("docs sweep: " + e.Error())
+					}
+				}
+				return err
 			}
 			root, err := repoRoot()
 			if err != nil {
 				return err
 			}
 			host, _ := os.Hostname()
-			return wt.RunSweep(wt.SweepOptions{
+			err = wt.RunSweep(wt.SweepOptions{
 				RepoRoot: root, Host: host, DryRun: dry, Fetch: fetch,
 				Pid: os.Getpid(), Now: time.Now().Unix(),
 				Runner: gitx.ExecRunner(), Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(),
 			})
+			if err == nil {
+				if ws, ok := wt.FindWorkspaceRoot(root); ok {
+					if e := sweepDocs(ws, !dry, true, cmd.ErrOrStderr()); e != nil {
+						uiErr(cmd).Note("docs sweep: " + e.Error())
+					}
+				}
+			}
+			return err
 		},
 		SilenceUsage:  true,
 		SilenceErrors: true,
