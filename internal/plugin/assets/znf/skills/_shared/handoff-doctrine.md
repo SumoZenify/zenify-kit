@@ -1,6 +1,6 @@
 # Handoff doctrine
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-10-13
 
 Which kind of handoff to write, where it lives, and when it is retired. Downstream `znf:` skills and
 any agent about to record session or milestone state read this at runtime; there is no cached copy to
@@ -15,7 +15,9 @@ re-deriving it. There are exactly two kinds, and they differ on four axes: locat
 audience, mutability.
 
 - **session-handoff** — an ephemeral note that carries one session's live state across a boundary.
-  - *Location:* `docs/handoff/<dated>.md` (knowledge store).
+  - *Location:* `docs/notes/<dated>.md` (local, not synced). Only when handing over to someone else:
+    `docs/handoff/<dated>.md` in the knowledge store; `zenify docs sweep` deletes it after 30 days (a
+    local copy lands in `docs/notes/`).
   - *Lifespan:* ephemeral — it exists to survive compaction or a session/branch boundary, then is
     superseded once the work lands. Not permanent.
   - *Audience:* the next session (often yourself), mid-flight: what is done, what is in flight, what
@@ -23,7 +25,8 @@ audience, mutability.
   - *Mutability:* mutable and disposable — overwrite or prune it freely; nothing downstream cites it.
 
 - **milestone-record** — a committed record that a unit of work shipped.
-  - *Location:* `m<N>-*.md` beside the ROADMAP (knowledge store).
+  - *Location:* no hand-written file — the record of a release is the report under `docs/releases/`,
+    written by the kit.
   - *Lifespan:* permanent — it is a doc-site source, the durable record of what was built and why.
   - *Audience:* anyone later asking "what did milestone N ship, and what decisions stuck?" — not the
     mid-flight resumer.
