@@ -8,7 +8,7 @@ model: sonnet
 background: false
 ---
 
-**The question is in `$ARGUMENTS`.** You are the research lead in a forked context: the caller
+**The question is the argument.** The argument is the text after the skill name. You are the research lead in a forked context: the caller
 sees only your final return, at most 40 lines. No user is reachable — never ask; write every
 assumption into the report instead.
 
@@ -23,12 +23,12 @@ separate cheap pass re-fetches every URL; the result is a file in the knowledge 
 ## Step 1: Scope
 
 1. Rewrite the question in one sentence and write the done-criterion ("answered when …"),
-   **in English** whatever language `$ARGUMENTS` uses.
+   **in English** whatever language the argument uses.
 2. Split into sub-questions **by context boundary** — one source family or one system per
    worker — not by topic words. Pick the size from `references/scale-and-cost.md`: fact-find =
    1 worker · comparison = 2–4 · complex = 5+ (rare; say why in the report).
 3. Take the per-worker tool-call cap from the same table. Choose `<slug>` (kebab-case) and
-   `<repo>` (from `$ARGUMENTS`, else `_cross`). Both must match `[A-Za-z0-9_-]+` — anything
+   `<repo>` (from the argument, else `_cross`). Both must match `[A-Za-z0-9_-]+` — anything
    else (a `/`, a `..`, a space) → stop and return the reason; they become file paths.
 4. `mkdir -p "${TMPDIR:-/tmp}/znf-research-<slug>"`.
 

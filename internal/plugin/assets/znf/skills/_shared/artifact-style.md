@@ -9,7 +9,7 @@ These rules are project-agnostic. A project's own prose language and any domain 
 in the project's convention, not here.
 
 **Machine-read text is not an artifact and stays English**: a brief to a subagent, a commit
-message, a memory, a rule, a skill. This holds whatever language the user wrote `$ARGUMENTS` in —
+message, a memory, a rule, a skill. This holds whatever language the user wrote their request in —
 a forked lead inherits the user's language and must not pass it on to its workers. Only what a
 human reads (spec, plan, report, PR body) follows the project's prose language.
 

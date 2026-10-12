@@ -5,7 +5,7 @@ argument-hint: "[symbol | collection | endpoint | file:line being changed]"
 allowed-tools: Read Grep Glob Bash(git *) Bash(rg *) Agent
 ---
 
-Scout: **$ARGUMENTS** (if no argument, scout whatever you are about to change).
+Scout: the argument (if no argument, scout whatever you are about to change). The argument is the text after the skill name.
 
 Tool names for each action: `znf:_shared/harness-tools` (harness mapping table).
 

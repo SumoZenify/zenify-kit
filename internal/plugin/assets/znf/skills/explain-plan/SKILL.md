@@ -12,7 +12,7 @@ background: false
 
 **Announce:** "Using znf:explain-plan to run the two-tier DB-perf gate on this diff."
 
-This skill runs in a forked context: `$ARGUMENTS` names the diff range or the changed files;
+This skill runs in a forked context: the argument names the diff range or the changed files (the argument is the text after the skill name);
 when empty, scan `origin/staging..HEAD` in the current directory. Return the full `## DB-Perf`
 block verbatim — the caller reads it, not a summary of it.
 

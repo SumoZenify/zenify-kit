@@ -12,7 +12,7 @@ background: false
 
 **Announce:** "Using znf:analyze to inspect the spec+plan before implementation."
 
-This skill runs in a forked context: the spec and plan paths are given in `$ARGUMENTS`
+This skill runs in a forked context: the spec and plan paths are given in the argument (the text after the skill name)
 (absolute paths, spec first). Everything you need is in those two files and this skill.
 
 Checks a written spec+plan pair against `znf:_shared/constitution` (P1–P9) and

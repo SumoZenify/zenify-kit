@@ -80,7 +80,7 @@ func TestResearchSkill_Shipped(t *testing.T) {
 		"name: research",
 		"context: fork",
 		"background: false",
-		"$ARGUMENTS",
+		"The argument is the text after the skill name.",
 		"znf:researcher",
 		"model: sonnet",
 		"model: haiku",

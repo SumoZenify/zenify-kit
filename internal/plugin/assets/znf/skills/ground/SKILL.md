@@ -8,8 +8,8 @@ model: sonnet
 background: false
 ---
 
-**The things to ground are given in `$ARGUMENTS`.** Verify each one against its real source and
-report back. You have no other context — do not assume anything about the caller's plan.
+**Ground the things named in the argument.** The argument is the text after the skill name. Verify each against its real source and
+report back. You have no other context; assume nothing about the caller's plan.
 
 Tool names for each action: `znf:_shared/harness-tools` (harness mapping table).
 
@@ -19,7 +19,7 @@ Tool names for each action: `znf:_shared/harness-tools` (harness mapping table).
 
 ## Step 1: Identify what needs grounding
 
-From `$ARGUMENTS`, state which shapes are unverified:
+From the argument, say which shapes are unverified:
 - DB collections/tables and fields — **and, for any field the code will branch on, what values
   it actually holds**
 - **Filters that every query here must carry** (see below)
