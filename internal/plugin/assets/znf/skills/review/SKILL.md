@@ -16,6 +16,7 @@ Five gates: PRE, BUNDLE, REVIEW, VERIFY, POST — one step each below (`referenc
 
 ```bash
 BASE=${BASE:-HEAD}            # ship: merge-base; standalone: HEAD (working tree)
+PACK=${PACK:-}                # ship-pack path from ship step 5; empty standalone
 ADDED=$(git diff --numstat "$BASE" | awk '{a+=$1+$2} END{print a+0}')
 # CODE lines only — a DELETION escalates; `.md` stays excluded or this file self-matches.
 SHARED=$(git diff "$BASE" -- ':(exclude)*.json' ':(exclude)*.md' ':(exclude)*.lock' ':(exclude)*.snap' \
@@ -46,9 +47,7 @@ Only when **ship** calls, ONCE, before ANY dispatch:
 printf '%s' "$VERIFIED_TEXT" | zenify review-doctrine   # {"verified":..,"stripped":[..]}
 ```
 
-- Hand the reviewer `.verified` in place of the ship-pack's `## Verified`.
-- `.stripped[]` non-empty → print "doctrine: stripped N claims from ## Verified: [...]".
-- `zenify` missing, or standalone → **skip**, note "doctrine sanitize skipped"; fail-open.
+Hand the reviewer `.verified` in place of `## Verified`; skip rules and the `.stripped[]` print: `references/lifecycle-and-t3.md` § Doctrine sanitize.
 
 ## Step 1c — BUNDLE (split a large diff)
 
@@ -70,6 +69,7 @@ Run via `bash` (materializes at 0o600, without +x), read line 1:
 SELECT_TIER=$(bash ~/.claude/skills/znf/skills/review/scripts/select-tier "$ADDED" "$SHARED" "$CRITICAL")
 TIER=$(printf '%s\n' "$SELECT_TIER" | sed -n '1p')   # reused by POST (Step 4)
 printf '%s\n' "$SELECT_TIER"                          # print on the report
+ENGINE=$(zenify reviewer 2>/dev/null | cut -d' ' -f1); [ -n "$ENGINE" ] || ENGINE=agent
 ```
 
 Line 1 = tier, line 2 = the reason. **Print tier + reason on the report** before dispatching.
@@ -77,6 +77,8 @@ Tier rule: `CRITICAL=1` → T3 at any size; else T1 ≤200 LOC / T2 201–600 / 
 **floors at T2** (T2's `contracts` goes to opus when shared).
 
 ## Step 3 — REVIEW dispatch by tier
+
+`ENGINE=codex` → one codex pass replaces the tiers (`references/codex-engine.md`; a failure falls back to them).
 
 **Doctrine preamble:** read it once —
 `DOCTRINE=$(awk '{print}' ~/.claude/skills/znf/skills/review/_shared/reviewer-doctrine.md 2>/dev/null)`
@@ -136,9 +138,8 @@ POST-capture: record into `.znf/review-log/` — **best-effort, does NOT block**
 command -v zenify >/dev/null && [ -n "$REC" ] && printf '%s' "$REC" | zenify review-log record 2>/dev/null || true   # REC: tier, outcome, categories
 ```
 
-Exact `ADVISE_IN`/`REC`: `references/post-gates.md`. Missing/failing zenify/jq/gate/adviser → skip
-with a note, never block, never read silence as clean; `shippable` unchanged. Read back:
-`zenify review-log --json`.
+Missing/failing zenify/jq/gate/adviser → skip
+with a note, never block, never read silence as clean; `shippable` unchanged.
 
 ## Report returned
 
@@ -149,13 +150,12 @@ with a note, never block, never read silence as clean; `shippable` unchanged. Re
 
 ## Callers, and nothing to review
 
-- **Standalone `/review`** — reviews `git diff HEAD` (or a range via `BASE`).
-- **ship step 5** — passes `BASE` + ship-pack; feeds CRITICAL/HIGH into ship's fix-loop.
+- **Standalone `/review`** — `git diff HEAD` (or a range via `BASE`); **ship step 5** — passes `BASE` + ship-pack, CRITICAL/HIGH feed its fix-loop.
 - Not a git repo / empty diff → print "nothing to review", stop, no dispatch.
-- >2000 LOC goes through BUNDLE (Step 1c).
 
 ## References
 
-- `references/bundling.md` — read when ADDED > 2000 and the diff must be split.
-- `references/post-gates.md` — the exact advisory-gate and review-log snippets.
-- `references/lifecycle-and-t3.md` — each gate end to end and the T3 workflow's rules.
+- `references/bundling.md` — Step 1c.
+- `references/post-gates.md` — exact `ADVISE_IN`/`REC` snippets.
+- `references/lifecycle-and-t3.md` — gates, T3 rules.
+- `references/codex-engine.md` — the `ENGINE=codex` branch.

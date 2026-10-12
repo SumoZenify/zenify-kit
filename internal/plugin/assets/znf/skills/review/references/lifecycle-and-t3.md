@@ -32,3 +32,9 @@ The engine runs 5 gates in order. M4a implements only REVIEW (3); the other 4 ga
 
 **Declined under T3:** the workflow reviewers return structured findings only, so `Declined:` lines
 come only from T1/T2 prose; the ship board carries them.
+
+### Doctrine sanitize (Step 1b-doctrine), in full
+
+- Hand the reviewer `.verified` in place of the ship-pack's `## Verified`.
+- `.stripped[]` non-empty → print "doctrine: stripped N claims from ## Verified: [...]".
+- `zenify` missing, or standalone → **skip**, note "doctrine sanitize skipped"; fail-open.
