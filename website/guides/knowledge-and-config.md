@@ -60,7 +60,7 @@ zenify docs sweep
 zenify docs sweep --apply --no-fetch
 ```
 
-Lệnh dọn plan của spec đã built hoặc superseded, handoff không ngày hoặc quá 30 ngày, reference không còn được link, và ghi dòng `**Status:**` cho spec. Mỗi file bị xóa được chép trước sang `docs/research/` hoặc `docs/notes/`. Chi tiết ở [Quy ước thư mục workspace](/concepts/workspace-layout).
+Lệnh dọn plan của spec đã built hoặc superseded, handoff không ngày hoặc quá 30 ngày, reference không còn được link, và ghi dòng `**Trạng thái:**` cho spec. Mỗi file bị xóa được chép trước sang `docs/research/` hoặc `docs/notes/`. Chi tiết ở [Quy ước thư mục workspace](/concepts/workspace-layout).
 
 ### `zenify config`
 

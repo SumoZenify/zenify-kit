@@ -33,7 +33,7 @@ type FS interface {
 type OSFS struct{}
 
 func (OSFS) ReadDir(p string) ([]os.DirEntry, error)           { return os.ReadDir(p) }
-func (OSFS) ReadFile(p string) ([]byte, error)                 { return os.ReadFile(p) }
+func (OSFS) ReadFile(p string) ([]byte, error)                 { return os.ReadFile(p) } //nolint:gosec // G304 -- OSFS is the real-filesystem seam, paths come from walking the store
 func (OSFS) WriteFile(p string, b []byte, m os.FileMode) error { return os.WriteFile(p, b, m) }
 func (OSFS) MkdirAll(p string, m os.FileMode) error            { return os.MkdirAll(p, m) }
 func (OSFS) Remove(p string) error                             { return os.Remove(p) }

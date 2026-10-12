@@ -36,7 +36,7 @@ func ensureLocalDirs(viewDir string) []string {
 	var notes []string
 	for _, d := range localDirs {
 		p := filepath.Join(viewDir, d)
-		if err := os.MkdirAll(p, 0o755); err != nil {
+		if err := os.MkdirAll(p, 0o755); err != nil { //nolint:gosec // G301 -- docs dirs stay readable like the store view (docsview/view.go)
 			notes = append(notes, "docs local: "+p+": "+err.Error())
 		}
 	}

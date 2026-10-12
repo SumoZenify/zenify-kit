@@ -259,7 +259,7 @@ func workspaceRootCheck(ws string) Check {
 // memoryIndexCheck warns when MEMORY.md nears the 200-line / 25 KB load cap.
 func memoryIndexCheck(ws string) Check {
 	return Check{Name: "memory-index", Run: func() (bool, string) {
-		b, err := os.ReadFile(filepath.Join(ws, ".claude", "memory", "MEMORY.md"))
+		b, err := os.ReadFile(filepath.Join(ws, ".claude", "memory", "MEMORY.md")) //nolint:gosec // G304 -- path computed from the resolved workspace root
 		if err != nil {
 			return true, "không có MEMORY.md" //znf:allow-lang
 		}
