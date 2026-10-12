@@ -174,11 +174,21 @@ func EnsureGlobalHooks(home string, dryRun bool) (HookChanges, error) {
 // touched. A migration counts once, as Updated. Returns true when anything
 // changed.
 func mergeOneHook(hooks map[string]any, spec hookSpec, ch *HookChanges) bool {
-	groups, _ := hooks[spec.Event].([]any)
+	return mergeCommand(hooks, spec.Event, spec.Matcher, spec.command(), func(cmd string) bool {
+		return isZnfMarked(cmd) && znfID(cmd) == spec.ID
+	}, ch)
+}
 
-	groups, migrated := pruneStaleMatcherGroups(groups, spec)
+// mergeCommand is mergeOneHook generalized: want is the command to ensure under
+// event/matcher, and isSame reports whether an existing command is the same
+// logical hook as want (so a drifted command is updated in place and a copy under
+// another matcher is migrated). Foreign commands never satisfy isSame.
+func mergeCommand(hooks map[string]any, event, matcher, want string, isSame func(cmd string) bool, ch *HookChanges) bool {
+	groups, _ := hooks[event].([]any)
+
+	groups, migrated := pruneStaleMatcherGroups(groups, matcher, isSame)
 	if migrated {
-		hooks[spec.Event] = groups
+		hooks[event] = groups
 	}
 
 	// Find a group matching this matcher.
@@ -188,23 +198,22 @@ func mergeOneHook(hooks map[string]any, spec hookSpec, ch *HookChanges) bool {
 		if !ok {
 			continue
 		}
-		if matcherOf(gm) == spec.Matcher {
+		if matcherOf(gm) == matcher {
 			group = gm
 			break
 		}
 	}
 	if group == nil {
 		group = map[string]any{}
-		if spec.Matcher != "" {
-			group["matcher"] = spec.Matcher
+		if matcher != "" {
+			group["matcher"] = matcher
 		}
 		group["hooks"] = []any{}
 		groups = append(groups, group)
-		hooks[spec.Event] = groups
+		hooks[event] = groups
 	}
 
 	inner, _ := group["hooks"].([]any)
-	want := spec.command()
 
 	// Look for an existing znf-marked command in this group.
 	for i, h := range inner {
@@ -213,11 +222,8 @@ func mergeOneHook(hooks map[string]any, spec hookSpec, ch *HookChanges) bool {
 			continue
 		}
 		cmd, _ := hm["command"].(string)
-		if !isZnfMarked(cmd) {
-			continue // foreign hook: never touch
-		}
-		// Same dispatch id? (compare the id token, tolerate flag drift)
-		if znfID(cmd) == spec.ID {
+		// Same hook? (hooks-run: compare the id token, tolerate flag drift)
+		if isSame(cmd) {
 			if cmd == want {
 				if migrated {
 					ch.Updated++
@@ -245,16 +251,16 @@ func mergeOneHook(hooks map[string]any, spec hookSpec, ch *HookChanges) bool {
 	return true
 }
 
-// pruneStaleMatcherGroups removes spec.ID's znf entry from every group of the
-// event whose matcher differs from spec.Matcher. Groups left empty by that
+// pruneStaleMatcherGroups removes the entry isSame recognizes from every group of
+// the event whose matcher differs from matcher. Groups left empty by that
 // removal are dropped; groups that were already empty, and every foreign
 // hook, are left exactly as found. Reports whether anything was removed.
-func pruneStaleMatcherGroups(groups []any, spec hookSpec) ([]any, bool) {
+func pruneStaleMatcherGroups(groups []any, matcher string, isSame func(cmd string) bool) ([]any, bool) {
 	out := make([]any, 0, len(groups))
 	removed := false
 	for _, g := range groups {
 		gm, ok := g.(map[string]any)
-		if !ok || matcherOf(gm) == spec.Matcher {
+		if !ok || matcherOf(gm) == matcher {
 			out = append(out, g)
 			continue
 		}
@@ -263,7 +269,7 @@ func pruneStaleMatcherGroups(groups []any, spec hookSpec) ([]any, bool) {
 		for _, h := range inner {
 			if hm, ok := h.(map[string]any); ok {
 				cmd, _ := hm["command"].(string)
-				if isZnfMarked(cmd) && znfID(cmd) == spec.ID {
+				if isSame(cmd) {
 					removed = true
 					continue
 				}
@@ -341,4 +347,75 @@ func writeAtomic(path string, data []byte, mode os.FileMode) error {
 		return err
 	}
 	return os.Rename(tmpName, path)
+}
+
+// codexGuardCommand is the git-guard hook command; it mirrors guardCommand in
+// internal/cli/guard.go (apply cannot import cli) — keep them in sync.
+const codexGuardCommand = "zenify git-guard"
+
+// isCodexKitCommand reports whether cmd is a hook the kit wires into Codex:
+// a hooks-run dispatcher entry or the git-guard entry.
+func isCodexKitCommand(cmd string) bool {
+	return isZnfMarked(cmd) || cmd == codexGuardCommand
+}
+
+// EnsureCodexHooks merges the Codex hook entries (codexEntries plus a git-guard
+// PreToolUse/Bash entry) into <codexHome>/hooks.json. Same merge rules as
+// EnsureGlobalHooks: idempotent, atomic, foreign keys/entries preserved,
+// fail-open (malformed → Skipped, file untouched). codexHome is created 0o700
+// when missing; dryRun writes nothing, not even the directory.
+func EnsureCodexHooks(codexHome string, dryRun bool) (HookChanges, error) {
+	path := filepath.Join(codexHome, "hooks.json")
+
+	root := map[string]json.RawMessage{}
+	mode := os.FileMode(0o644)
+	existing, readErr := os.ReadFile(path) //nolint:gosec // G304 -- path is <codexHome>/hooks.json, computed from the caller's codex home, not user input
+	switch {
+	case readErr == nil:
+		if err := json.Unmarshal(existing, &root); err != nil {
+			return HookChanges{Skipped: true}, fmt.Errorf("hooks.json malformed, skipping hook wiring: %w", err)
+		}
+		if fi, statErr := os.Stat(path); statErr == nil {
+			mode = fi.Mode().Perm()
+		}
+	case !os.IsNotExist(readErr):
+		return HookChanges{Skipped: true}, fmt.Errorf("read hooks.json: %w", readErr)
+	}
+
+	hooks := map[string]any{}
+	if raw, ok := root["hooks"]; ok {
+		if err := json.Unmarshal(raw, &hooks); err != nil {
+			return HookChanges{Skipped: true}, fmt.Errorf("hooks.json \"hooks\" is not an object, skipping hook wiring: %w", err)
+		}
+		if hooks == nil {
+			return HookChanges{Skipped: true}, fmt.Errorf("hooks.json \"hooks\" is null, skipping hook wiring")
+		}
+	}
+
+	var ch HookChanges
+	for _, spec := range codexEntries(znfHookSpecs()) {
+		mergeOneHook(hooks, spec, &ch)
+	}
+	mergeCommand(hooks, "PreToolUse", "Bash", codexGuardCommand, func(cmd string) bool { return cmd == codexGuardCommand }, &ch)
+
+	if dryRun || (ch.Added == 0 && ch.Updated == 0) {
+		return ch, nil
+	}
+
+	hooksOut, err := marshalNoEscape(hooks)
+	if err != nil {
+		return ch, err
+	}
+	root["hooks"] = json.RawMessage(bytes.TrimSpace(hooksOut))
+	out, err := marshalNoEscape(root)
+	if err != nil {
+		return ch, err
+	}
+	if err := os.MkdirAll(codexHome, 0o700); err != nil {
+		return ch, err
+	}
+	if err := writeAtomic(path, out, mode); err != nil {
+		return ch, err
+	}
+	return ch, nil
 }
