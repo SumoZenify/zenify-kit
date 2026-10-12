@@ -46,6 +46,43 @@ type HookSpec = hookSpec
 // HookSpecs returns the hooks the kit wires into ~/.claude/settings.json.
 func HookSpecs() []HookSpec { return znfHookSpecs() }
 
+// codexSubagentTool is the tool name Codex puts in PreToolUse/PostToolUse
+// payloads when it spawns a subagent (measured in experiment E11, Codex 0.155.1).
+// internal/cli/observe.go keeps a copy of this literal; keep them in sync.
+const codexSubagentTool = "collaborationspawn_agent"
+
+// codexEntries derives the Codex hook specs from the Claude ones: read-guard is
+// dropped (Codex has no matching Read tool) and Claude subagent tool names in
+// matchers are replaced by codexSubagentTool. ID and Purpose are kept.
+func codexEntries(specs []hookSpec) []hookSpec {
+	out := make([]hookSpec, 0, len(specs))
+	for _, s := range specs {
+		switch {
+		case s.ID == "read-guard":
+			continue
+		case s.Matcher == "Task|Agent":
+			s.Matcher = codexSubagentTool
+		case s.Matcher == "Task|Agent|Bash|WebFetch|WebSearch|Read":
+			s.Matcher = codexSubagentTool + "|Bash"
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// CodexHookSpecs returns the hooks the kit wires into Codex (read-only view for docsgen).
+func CodexHookSpecs() []HookSpec { return codexEntries(znfHookSpecs()) }
+
+// Runtimes names the runtimes this hook is installed for.
+func (s hookSpec) Runtimes() string {
+	for _, c := range codexEntries([]hookSpec{s}) {
+		if c.ID == s.ID {
+			return "Claude, Codex"
+		}
+	}
+	return "Claude"
+}
+
 // HookChanges reports what EnsureGlobalHooks did (or would do in dryRun).
 type HookChanges struct {
 	Added     int
