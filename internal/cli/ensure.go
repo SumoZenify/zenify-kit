@@ -14,6 +14,16 @@ import (
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/version"
 )
 
+// ensureReport carries what the Codex steps of ensureWorkspace found, for the
+// `zenify up` summary block (FR-7.2).
+type ensureReport struct {
+	CodexInstalled bool
+	CodexLinkPath  string
+	CodexHooks     apply.HookChanges
+	CodexAgents    int
+	CodexMCP       string // playwright registration state; filled by `up`
+}
+
 // ensureWorkspace brings a workspace to the state the kit expects (W0 FR-01):
 //
 //  1. re-materialize the znf plugin when the installed stamp is behind the
@@ -26,7 +36,7 @@ import (
 // Every step is fail-open: an error is one "znf ensure:" line on stderr and
 // the next step still runs. stdout only gets a line when something changed,
 // so a SessionStart on an up-to-date workspace prints nothing.
-func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
+func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) (rep ensureReport) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Fprintln(stderr, "znf ensure: recovered:", r)
@@ -37,6 +47,7 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 
 	// Codex discovers skills under ~/.agents/skills, so this runs whether or
 	// not codex is installed (FR-2.1).
+	rep.CodexLinkPath = filepath.Join(home, ".agents", "skills", "znf")
 	if st, err := apply.EnsureCodexSkillsLink(home, false); err != nil {
 		fmt.Fprintln(stderr, "znf ensure: codex-skills:", err)
 	} else if st == apply.LinkRealDir {
@@ -59,14 +70,16 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 	}
 
 	if codexOnPath() {
+		rep.CodexInstalled = true
 		if ch, err := apply.EnsureCodexHooks(codexHomeDir(home, os.Getenv), false); err != nil {
 			fmt.Fprintln(stderr, "znf ensure: codex-hooks:", err)
-		} else if ch.Added+ch.Updated > 0 {
+		} else if rep.CodexHooks = ch; ch.Added+ch.Updated > 0 {
 			fmt.Fprintln(stdout, "Codex hook chưa chạy cho tới khi bạn trust một lần: mở codex, gõ /hooks, chọn trust.") //znf:allow-lang
 		}
 		if ar, err := plugin.SyncCodexAgents(codexHomeDir(home, os.Getenv), false); err != nil {
 			fmt.Fprintln(stderr, "znf ensure: codex-agents:", err)
 		} else {
+			rep.CodexAgents = len(ar.Written) + len(ar.Unchanged)
 			for _, n := range ar.Skipped {
 				fmt.Fprintf(stderr, "znf ensure: codex-agents: %s.toml không phải của kit, bỏ qua\n", n) //znf:allow-lang
 			}
@@ -146,6 +159,7 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 			}
 		}
 	}
+	return rep
 }
 
 // resyncPluginIfStale is the former selfHeal body: when the plugin manifest's

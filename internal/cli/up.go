@@ -317,13 +317,40 @@ func runApply(w io.Writer, errW io.Writer, plans []reconcile.RepoPlan, m *manife
 	// Hooks + model pin + store config distribution, all fail-open (W0 FR-01.4);
 	// never affects `failed`.
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		ensureWorkspace(workspace, home, w, errW)
+		rep := ensureWorkspace(workspace, home, w, errW)
+		if rep.CodexInstalled {
+			st, _ := playwright.Registration(playwright.Options{
+				Target: playwright.TargetCodex,
+				Output: func(name string, args []string) ([]byte, error) { return exec.Command(name, args...).Output() }, //nolint:gosec // G204 -- fixed trusted binary, internally-computed args
+				Home:   home,
+				Getenv: os.Getenv,
+				GOOS:   runtime.GOOS,
+			})
+			rep.CodexMCP = st.String()
+		}
+		renderCodexSummary(rep, w)
 	}
 
 	if failed > 0 {
 		return exitcode.New(exitcode.Fail, fmt.Errorf("apply: %d repo(s) failed", failed))
 	}
 	return nil
+}
+
+// renderCodexSummary prints the Codex block of `zenify up` (FR-7.2).
+func renderCodexSummary(rep ensureReport, w io.Writer) {
+	if !rep.CodexInstalled {
+		fmt.Fprintln(w, "Codex: không cài, bỏ qua") //znf:allow-lang
+		return
+	}
+	fmt.Fprintln(w, "Codex:")
+	fmt.Fprintf(w, "  skills: symlink %s\n", rep.CodexLinkPath)
+	fmt.Fprintf(w, "  hooks: %d entry\n", rep.CodexHooks.Total())
+	if rep.CodexHooks.Added+rep.CodexHooks.Updated > 0 {
+		fmt.Fprintln(w, "    hook mới/đổi chưa chạy cho tới khi trust: mở codex, gõ /hooks, chọn trust") //znf:allow-lang
+	}
+	fmt.Fprintf(w, "  agents: %d\n", rep.CodexAgents)
+	fmt.Fprintf(w, "  MCP playwright: %s\n", rep.CodexMCP)
 }
 
 // hasFrontendRepo reports whether the manifest onboards any frontend repo,
