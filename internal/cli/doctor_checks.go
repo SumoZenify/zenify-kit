@@ -308,4 +308,5 @@ func registerDefaultChecks() {
 	RegisterCheck(gitGuardCheck(os.UserHomeDir))
 	RegisterCheck(gitIdentityCheck())
 	RegisterCheck(pluginCheck())
+	registerCodexChecks()
 }

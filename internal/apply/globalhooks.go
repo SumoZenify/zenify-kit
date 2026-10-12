@@ -419,3 +419,36 @@ func EnsureCodexHooks(codexHome string, dryRun bool) (HookChanges, error) {
 	}
 	return ch, nil
 }
+
+// CountCodexKitHooks counts the kit-wired hook commands in <codexHome>/hooks.json
+// (same recognition as RemoveCodexHooks). Missing file → 0, nil.
+func CountCodexKitHooks(codexHome string) (int, error) {
+	b, err := os.ReadFile(filepath.Join(codexHome, "hooks.json")) //nolint:gosec // G304 -- path computed from codexHome
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	var root struct {
+		Hooks map[string][]struct {
+			Hooks []struct {
+				Command string `json:"command"`
+			} `json:"hooks"`
+		} `json:"hooks"`
+	}
+	if err := json.Unmarshal(b, &root); err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, groups := range root.Hooks {
+		for _, g := range groups {
+			for _, h := range g.Hooks {
+				if isCodexKitCommand(h.Command) {
+					n++
+				}
+			}
+		}
+	}
+	return n, nil
+}
