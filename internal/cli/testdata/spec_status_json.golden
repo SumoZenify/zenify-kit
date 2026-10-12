@@ -1,0 +1,20 @@
+[
+  {
+    "path": "specs/a/2026-01-01-x-design.md",
+    "repo": "a",
+    "slug": "x",
+    "state": "unknown",
+    "tier": 0,
+    "has_plan": true,
+    "git_evaluable": false
+  },
+  {
+    "path": "specs/b/2026-01-02-y-design.md",
+    "repo": "b",
+    "slug": "y",
+    "state": "unknown",
+    "tier": 0,
+    "has_plan": false,
+    "git_evaluable": false
+  }
+]

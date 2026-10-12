@@ -81,3 +81,45 @@ func TestRunSpecContracts_MissingTagCounted(t *testing.T) {
 		t.Fatalf("out missing the tagged spec:\n%s", out.String())
 	}
 }
+
+// fakeSpecStore builds a two-spec store: a (with plan) and b (without).
+func fakeSpecStore(t *testing.T) string {
+	t.Helper()
+	store := t.TempDir()
+	writeSpec(t, store, "a", "2026-01-01-x-design.md", "## Brief\n(no tags)\n")
+	writeSpec(t, store, "b", "2026-01-02-y-design.md", "## Brief\n(no tags)\n")
+	planDir := filepath.Join(store, "plans", "a")
+	if err := os.MkdirAll(planDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(planDir, "2026-01-01-x.md"), []byte("# plan\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return store
+}
+
+func TestSpecStatus_GoldenOutput(t *testing.T) {
+	store := fakeSpecStore(t)
+	fakeResolve := func(string) (string, bool) { return "", false }
+	fakeBase := func(string) string { return "origin/main" }
+	for _, c := range []struct {
+		name string
+		json bool
+	}{{"table", false}, {"json", true}} {
+		var out, errb bytes.Buffer
+		if err := runSpecStatus(store, t.TempDir(), true, c.json, "", false, fakeResolve, fakeBase, &fakeGit{}, &out, &errb); err != nil {
+			t.Fatal(err)
+		}
+		got := strings.ReplaceAll(out.String(), store, "<store>")
+		golden := filepath.Join("testdata", "spec_status_"+c.name+".golden")
+		if os.Getenv("UPDATE_GOLDEN") != "" {
+			if err := os.WriteFile(golden, []byte(got), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		want, _ := os.ReadFile(golden)
+		if got != string(want) {
+			t.Fatalf("%s output drifted:\n%s", c.name, got)
+		}
+	}
+}
