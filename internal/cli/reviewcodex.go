@@ -37,7 +37,7 @@ func execCodexRunner(ctx context.Context, name string, args []string) ([]byte, [
 }
 
 func codexReviewPrompt(base, pack string) string {
-	p := "Review ONLY the diff " + base + "..HEAD of this repository."
+	p := "Review ONLY the changes of this repository relative to " + base + ", including uncommitted working-tree changes (staged and unstaged)."
 	if pack != "" {
 		p += "\nIntent:\n" + pack
 	}

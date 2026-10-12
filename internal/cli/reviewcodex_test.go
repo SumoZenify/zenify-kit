@@ -45,7 +45,7 @@ func TestReviewCodexFixtureB(t *testing.T) {
 		t.Fatalf("stdout %q err %v", so.String(), err)
 	}
 	if gotName != "codex" || len(gotArgs) != 4 || gotArgs[0] != "review" || gotArgs[1] != "-c" ||
-		gotArgs[2] != "model_reasoning_effort=medium" || !strings.HasPrefix(gotArgs[3], "Review ONLY the diff origin/staging..HEAD of this repository.") {
+		gotArgs[2] != "model_reasoning_effort=medium" || !strings.HasPrefix(gotArgs[3], "Review ONLY the changes of this repository relative to origin/staging, including uncommitted working-tree changes (staged and unstaged).") {
 		t.Fatalf("args %q %q", gotName, gotArgs)
 	}
 }
@@ -94,6 +94,27 @@ func TestReviewCodexPromptWithPack(t *testing.T) {
 	}
 	want := "\nIntent:\nadd user search\nReport every finding as exactly one line:"
 	if !strings.Contains(prompt, want) {
+		t.Fatalf("prompt %q lacks %q", prompt, want)
+	}
+}
+
+// Standalone /review passes Base "HEAD" and its scope is `git diff HEAD` (the working tree),
+// so the prompt must not collapse to the always-empty HEAD..HEAD range.
+func TestReviewCodexPromptKeepsWorkingTreeScope(t *testing.T) {
+	var prompt string
+	runner := func(_ context.Context, _ string, args []string) ([]byte, []byte, error) {
+		prompt = args[len(args)-1]
+		return []byte("ok\n"), nil, nil
+	}
+	var so, se bytes.Buffer
+	if code := runReviewCodex(reviewCodexOpts{Base: "HEAD", Timeout: time.Minute}, runner, &so, &se); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if strings.Contains(prompt, "HEAD..HEAD") {
+		t.Fatalf("prompt %q holds the empty HEAD..HEAD range", prompt)
+	}
+	want := "Review ONLY the changes of this repository relative to HEAD, including uncommitted working-tree changes (staged and unstaged)."
+	if !strings.HasPrefix(prompt, want) {
 		t.Fatalf("prompt %q lacks %q", prompt, want)
 	}
 }
