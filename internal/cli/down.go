@@ -8,6 +8,7 @@ import (
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/apply"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/exitcode"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/managed"
+	"github.com/ZenifyAIContactCenter/zenify-kit/internal/plugin"
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -63,6 +64,15 @@ func newDownCmd() *cobra.Command {
 					u.Step(ui.StatusOK, "codex-hooks", fmt.Sprintf("gỡ %d hook khỏi hooks.json của Codex", codexRes.Removed)) //znf:allow-lang
 				default:
 					u.Step(ui.StatusInfo, "codex-hooks", "không có hook Codex nào để gỡ") //znf:allow-lang
+				}
+				agentNames, aerr := plugin.RemoveCodexAgents(codexHomeDir(home, os.Getenv), dryRun)
+				switch {
+				case aerr != nil:
+					u.Step(ui.StatusWarn, "codex-agents", fmt.Sprintf("bỏ qua (%v)", aerr)) //znf:allow-lang
+				case len(agentNames) > 0:
+					u.Step(ui.StatusOK, "codex-agents", fmt.Sprintf("gỡ %d agent khỏi thư mục agents của Codex", len(agentNames))) //znf:allow-lang
+				default:
+					u.Step(ui.StatusInfo, "codex-agents", "không có agent Codex nào để gỡ") //znf:allow-lang
 				}
 				linkRemoved, lerr := apply.RemoveCodexSkillsLink(home, dryRun)
 				switch {

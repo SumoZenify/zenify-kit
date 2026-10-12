@@ -64,6 +64,13 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 		} else if ch.Added+ch.Updated > 0 {
 			fmt.Fprintln(stdout, "Codex hook chưa chạy cho tới khi bạn trust một lần: mở codex, gõ /hooks, chọn trust.") //znf:allow-lang
 		}
+		if ar, err := plugin.SyncCodexAgents(codexHomeDir(home, os.Getenv), false); err != nil {
+			fmt.Fprintln(stderr, "znf ensure: codex-agents:", err)
+		} else {
+			for _, n := range ar.Skipped {
+				fmt.Fprintf(stderr, "znf ensure: codex-agents: %s.toml không phải của kit, bỏ qua\n", n) //znf:allow-lang
+			}
+		}
 	}
 
 	if changed, err := apply.EnsureWorkspaceModel(workspace, false); err != nil {
