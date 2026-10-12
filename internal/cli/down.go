@@ -55,6 +55,24 @@ func newDownCmd() *cobra.Command {
 				default:
 					u.Step(ui.StatusInfo, "hooks", "không có znf hook nào để gỡ") //znf:allow-lang
 				}
+				codexRes, cerr := apply.RemoveCodexHooks(codexHomeDir(home, os.Getenv), dryRun)
+				switch {
+				case cerr != nil:
+					u.Step(ui.StatusWarn, "codex-hooks", fmt.Sprintf("bỏ qua (%v)", cerr)) //znf:allow-lang
+				case codexRes.Removed > 0:
+					u.Step(ui.StatusOK, "codex-hooks", fmt.Sprintf("gỡ %d hook khỏi hooks.json của Codex", codexRes.Removed)) //znf:allow-lang
+				default:
+					u.Step(ui.StatusInfo, "codex-hooks", "không có hook Codex nào để gỡ") //znf:allow-lang
+				}
+				linkRemoved, lerr := apply.RemoveCodexSkillsLink(home, dryRun)
+				switch {
+				case lerr != nil:
+					u.Step(ui.StatusWarn, "codex-skills", fmt.Sprintf("bỏ qua (%v)", lerr)) //znf:allow-lang
+				case linkRemoved:
+					u.Step(ui.StatusOK, "codex-skills", "gỡ symlink ~/.agents/skills/znf") //znf:allow-lang
+				default:
+					u.Step(ui.StatusInfo, "codex-skills", "không có symlink skill Codex nào để gỡ") //znf:allow-lang
+				}
 				// git-guard is not in the znf hook set RemoveGlobalHooks knows,
 				// but up/SessionStart install it, so offboarding removes it too.
 				gRemoved, gerr := removeGuard(home, dryRun)

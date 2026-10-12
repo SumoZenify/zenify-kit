@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,6 +35,14 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 
 	resyncPluginIfStale(home, stderr)
 
+	// Codex discovers skills under ~/.agents/skills, so this runs whether or
+	// not codex is installed (FR-2.1).
+	if st, err := apply.EnsureCodexSkillsLink(home, false); err != nil {
+		fmt.Fprintln(stderr, "znf ensure: codex-skills:", err)
+	} else if st == apply.LinkRealDir {
+		fmt.Fprintf(stderr, "znf ensure: codex-skills: %s là thư mục thật, bỏ qua\n", filepath.Join(home, ".agents", "skills", "znf")) //znf:allow-lang
+	}
+
 	if ch, err := apply.EnsureGlobalHooks(home, false); err != nil {
 		fmt.Fprintln(stderr, "znf ensure: hooks:", err)
 	} else if n := ch.Added + ch.Updated; n > 0 {
@@ -47,6 +56,14 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) {
 		fmt.Fprintln(stderr, "znf ensure: git-guard:", err)
 	} else if changed {
 		fmt.Fprintln(stdout, "wired git-guard hook (blocks commit/push on deploy branches)")
+	}
+
+	if codexOnPath() {
+		if ch, err := apply.EnsureCodexHooks(codexHomeDir(home, os.Getenv), false); err != nil {
+			fmt.Fprintln(stderr, "znf ensure: codex-hooks:", err)
+		} else if ch.Added+ch.Updated > 0 {
+			fmt.Fprintln(stdout, "Codex hook chưa chạy cho tới khi bạn trust một lần: mở codex, gõ /hooks, chọn trust.") //znf:allow-lang
+		}
 	}
 
 	if changed, err := apply.EnsureWorkspaceModel(workspace, false); err != nil {
