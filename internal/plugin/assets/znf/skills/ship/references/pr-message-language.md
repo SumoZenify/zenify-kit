@@ -27,24 +27,10 @@ Do not split the two halves the wrong way. A title whose description is English 
 in the project's language — or the reverse, an English body under a localized title — is the exact
 inconsistency this rule exists to remove. Pick the audience per field, not per PR.
 
-## Fixed body structure
+## Body structure
 
-The body is always, in this order (section headings stay exactly as written; the content is
-in the project's prose language):
-
-```
-<title: type(scope): description>
-
-## Nghiệm thu
-<one line per spec SC-n when the ship-pack carries a spec path; otherwise the single line: Không có spec>
-
-## Review còn mở
-<every `minor (deferred)` / `parked` line from the SDD ledger, verbatim; otherwise the single line: Không có>
-
-<the existing body: summary · what changed · how verified · attribution line>
-```
-
-- `## Nghiệm thu` — read the spec the ship-pack's `## Intent` names and list its `SC-n` lines.
-- `## Review còn mở` — the same lines the pack's `## Deferred` carries
-  (`rg -n 'minor \(deferred\)|parked —' .znf/sdd/*/progress.md`); no ledger → `Không có`.
-
+The body is, in this order: **summary · what changed · how verified**, then the repo's attribution
+line. Write it for the human reviewer: no list of spec `SC-n` lines, no test function names, no
+SDD ledger lines (`minor (deferred)` / `parked`) — the reviewer cannot act on any of them, and the
+ship board and ledger already hold them. Name in plain words only what was NOT verified and what a
+person still has to decide or do by hand.
