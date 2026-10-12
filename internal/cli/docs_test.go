@@ -126,3 +126,38 @@ func TestDocsSyncLocalDirsWhenViewEqualsDir(t *testing.T) {
 		}
 	}
 }
+
+func TestDocsSweep_NoSpecsDirFailsOpen(t *testing.T) { // SC-8
+	home := t.TempDir()
+	t.Setenv("ZENIFY_HOME", home)
+	os.MkdirAll(filepath.Join(home, "knowledge"), 0o755)
+	var e bytes.Buffer
+	cmd := newDocsCmd()
+	cmd.SetErr(&e)
+	cmd.SetArgs([]string{"sweep", "--apply", "--workspace", t.TempDir()})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(e.String(), "docs sweep:"); n != 1 {
+		t.Fatalf("want one note, got %q", e.String())
+	}
+}
+
+func TestDocsSweep_DryRunPrintsPlanAndTouchesNothing(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("ZENIFY_HOME", home)
+	store := filepath.Join(home, "knowledge")
+	writeF(t, filepath.Join(store, "specs", "r", "2026-01-01-a-design.md"), "# a\n")
+	writeF(t, filepath.Join(store, "handoff", "ROADMAP.md"), "R")
+	var e bytes.Buffer
+	cmd := newDocsCmd()
+	cmd.SetErr(&e)
+	cmd.SetArgs([]string{"sweep", "--no-fetch", "--workspace", t.TempDir()})
+	cmd.Execute()
+	if !strings.Contains(e.String(), "docs sweep: delete-handoff handoff/ROADMAP.md (undated)") || !strings.Contains(e.String(), "dry-run") {
+		t.Fatal(e.String())
+	}
+	if _, err := os.Stat(filepath.Join(store, "handoff", "ROADMAP.md")); err != nil {
+		t.Fatal("dry-run deleted a file")
+	}
+}

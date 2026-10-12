@@ -37,6 +37,7 @@ Mỗi lệnh có một trang riêng với cú pháp, cờ và ví dụ. Nội du
 | [zenify db-read](./zenify_db-read) | Đọc database dùng chung ở chế độ chỉ đọc, không bao giờ ghi và không in secret. |
 | [zenify docs](./zenify_docs) | Nhóm lệnh cho docs layer: đồng bộ knowledge store và sinh trang tham chiếu. |
 | [zenify docs gen](./zenify_docs_gen) | Sinh các trang tham chiếu của website này từ binary, hoặc kiểm tra trang đã sinh còn khớp. |
+| [zenify docs sweep](./zenify_docs_sweep) | Dọn knowledge store - xóa plan, handoff, reference đã hết giá trị và ghi header trạng thái cho spec; mặc định chỉ in kế hoạch. |
 | [zenify docs sync](./zenify_docs_sync) | Đồng bộ knowledge store với remote qua git và dựng lại view docs/ trong workspace. |
 | [zenify doctor](./zenify_doctor) | Kiểm tra sức khỏe môi trường ZenifyKit trên máy và báo từng mục đạt hay hỏng. |
 | [zenify down](./zenify_down) | Gỡ phần ZenifyKit đã cài vào máy và repo, giữ nguyên code, workspace và knowledge store. |
