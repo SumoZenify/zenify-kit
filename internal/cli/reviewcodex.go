@@ -28,7 +28,7 @@ const codexWaitDelay = 5 * time.Second
 type codexRunner func(ctx context.Context, name string, args []string) (stdout, stderr []byte, err error)
 
 func execCodexRunner(ctx context.Context, name string, args []string) ([]byte, []byte, error) {
-	cmd := exec.CommandContext(ctx, name, args...) // Stdin nil = /dev/null (closed)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // G204 -- name is the fixed codex command chosen by the kit and args are built by the kit, not user input; Stdin nil = /dev/null (closed)
 	cmd.WaitDelay = codexWaitDelay                 // a child holding the pipes must not outlive --timeout
 	var so, se bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &so, &se

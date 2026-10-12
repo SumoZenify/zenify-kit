@@ -108,7 +108,7 @@ func alwaysLoadedRules(dir string) (int, error) {
 		if d.IsDir() || !strings.HasSuffix(p, ".md") {
 			return nil
 		}
-		b, err := os.ReadFile(p)
+		b, err := os.ReadFile(p) //nolint:gosec // G304 -- p is a kit-computed context file path (home/workspace/manifest repo list), not user input
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func alwaysLoadedRules(dir string) (int, error) {
 }
 
 func fileSize(p string) (int, error) {
-	b, err := os.ReadFile(p)
+	b, err := os.ReadFile(p) //nolint:gosec // G304 -- p is a kit-computed context file path (home/workspace/manifest repo list), not user input
 	if os.IsNotExist(err) {
 		return 0, nil
 	}
@@ -166,7 +166,7 @@ func contextBudgetCheck(home, workspace string, repos []string) Check {
 			for _, r := range repos {
 				p := filepath.Join(workspace, r, "CLAUDE.md")
 				label := filepath.ToSlash(r) + "/CLAUDE.md"
-				b, err := os.ReadFile(p)
+				b, err := os.ReadFile(p) //nolint:gosec // G304 -- p is a kit-computed context file path (home/workspace/manifest repo list), not user input
 				if os.IsNotExist(err) {
 					lines = append(lines, label+": thiếu") //znf:allow-lang
 					continue
