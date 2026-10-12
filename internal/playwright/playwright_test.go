@@ -235,10 +235,16 @@ func TestRegistrationCodexParsesFixture(t *testing.T) {
 	if st, _ := Registration(o); st != RegLegacyDefault {
 		t.Fatalf("old args should be legacy-default, got %v", st)
 	}
+	o.Output = func(string, []string) ([]byte, error) {
+		return []byte(`{"transport":{"command":"npx","args":["@playwright/mcp@latest","--browser","firefox"]}}`), nil
+	}
+	if st, _ := Registration(o); st != RegCustom {
+		t.Fatalf("user flags should be custom, got %v", st)
+	}
 	o.Home = "/other"
 	o.Output = func(string, []string) ([]byte, error) { return fx, nil }
-	if st, _ := Registration(o); st != RegLegacyDefault {
-		t.Fatalf("other output-dir with @playwright/mcp should be legacy-default, got %v", st)
+	if st, _ := Registration(o); st != RegCustom {
+		t.Fatalf("other output-dir should be custom, got %v", st)
 	}
 	o.Output = func(string, []string) ([]byte, error) {
 		return []byte(`{"transport":{"command":"node","args":["x.js"]}}`), nil
@@ -283,5 +289,30 @@ func TestBootstrapCodexAddsWithoutScopeFlag(t *testing.T) {
 		if a == "-s" || a == "install" {
 			t.Fatalf("unexpected %q in %v", a, calls[0])
 		}
+	}
+}
+
+func TestBootstrapCodexLegacyRemovesThenAdds(t *testing.T) {
+	var calls [][]string
+	o := Options{
+		Target: TargetCodex,
+		Runner: func(name string, args []string) error {
+			calls = append(calls, append([]string{name}, args...))
+			return nil
+		},
+		Output: func(string, []string) ([]byte, error) {
+			return []byte(`{"transport":{"command":"npx","args":["@playwright/mcp@latest"]}}`), nil
+		},
+		Home: "/h",
+	}
+	if err := Bootstrap(o); err != nil {
+		t.Fatal(err)
+	}
+	want := [][]string{
+		{"codex", "mcp", "remove", "playwright"},
+		append([]string{"codex", "mcp", "add", "playwright", "--", "npx"}, DesiredArgs("/h")...),
+	}
+	if len(calls) != 2 || strings.Join(calls[0], "\x00") != strings.Join(want[0], "\x00") || strings.Join(calls[1], "\x00") != strings.Join(want[1], "\x00") {
+		t.Fatalf("calls %v, want %v", calls, want)
 	}
 }

@@ -179,10 +179,8 @@ func registrationCodex(o Options) (RegState, []string) {
 	if strings.Join(args, " ") == strings.Join(want, " ") {
 		return RegDesired, nil
 	}
-	for _, a := range args {
-		if strings.HasPrefix(a, "@playwright/mcp") {
-			return RegLegacyDefault, missing
-		}
+	if len(args) == 1 && args[0] == want[0] {
+		return RegLegacyDefault, missing
 	}
 	return RegCustom, missing
 }
