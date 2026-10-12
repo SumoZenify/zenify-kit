@@ -89,6 +89,11 @@ func playwrightCheck() Check {
 				GOOS:   runtime.GOOS,
 			}
 			reg, _, detail := playwright.Status(o)
+			if codexOnPath() {
+				o.Target = playwright.TargetCodex
+				cs, _ := playwright.Registration(o)
+				detail += fmt.Sprintf("; codex mcp=%s", cs) //znf:allow-lang
+			}
 			return reg, detail // ok = MCP registered; browser absence shown in detail
 		},
 	}

@@ -200,3 +200,88 @@ func TestBootstrapReturnsAddError(t *testing.T) {
 }
 
 var errTest = errors.New("boom")
+
+func codexFixture(t *testing.T) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("testdata", "codex_mcp_get.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func TestRegistrationCodexParsesFixture(t *testing.T) {
+	fx := codexFixture(t)
+	var gotName string
+	var gotArgs []string
+	o := Options{
+		Target: TargetCodex,
+		Output: func(name string, args []string) ([]byte, error) {
+			gotName, gotArgs = name, args
+			return fx, nil
+		},
+		Home: "/Users/believe",
+	}
+	st, _ := Registration(o)
+	if st != RegDesired {
+		t.Fatalf("fixture should be desired, got %v", st)
+	}
+	if gotName != "codex" || strings.Join(gotArgs, " ") != "mcp get playwright --json" {
+		t.Fatalf("wrong command: %s %v", gotName, gotArgs)
+	}
+	o.Output = func(string, []string) ([]byte, error) {
+		return []byte(`{"transport":{"command":"npx","args":["@playwright/mcp@latest"]}}`), nil
+	}
+	if st, _ := Registration(o); st != RegLegacyDefault {
+		t.Fatalf("old args should be legacy-default, got %v", st)
+	}
+	o.Home = "/other"
+	o.Output = func(string, []string) ([]byte, error) { return fx, nil }
+	if st, _ := Registration(o); st != RegLegacyDefault {
+		t.Fatalf("other output-dir with @playwright/mcp should be legacy-default, got %v", st)
+	}
+	o.Output = func(string, []string) ([]byte, error) {
+		return []byte(`{"transport":{"command":"node","args":["x.js"]}}`), nil
+	}
+	if st, _ := Registration(o); st != RegCustom {
+		t.Fatalf("got %v, want custom", st)
+	}
+}
+
+func TestRegistrationCodexAbsent(t *testing.T) {
+	o := Options{
+		Target: TargetCodex,
+		Output: func(string, []string) ([]byte, error) { return nil, errTest },
+		Home:   "/h",
+	}
+	if st, _ := Registration(o); st != RegAbsent {
+		t.Fatalf("got %v, want absent", st)
+	}
+}
+
+func TestBootstrapCodexAddsWithoutScopeFlag(t *testing.T) {
+	var calls [][]string
+	o := Options{
+		Target: TargetCodex,
+		Runner: func(name string, args []string) error {
+			calls = append(calls, append([]string{name}, args...))
+			return nil
+		},
+		Output: func(string, []string) ([]byte, error) { return nil, errTest },
+		Getenv: func(string) string { return "" },
+		GOOS:   "linux",
+		Home:   "/h",
+	}
+	if err := Bootstrap(o); err != nil {
+		t.Fatal(err)
+	}
+	want := append([]string{"codex", "mcp", "add", "playwright", "--", "npx"}, DesiredArgs("/h")...)
+	if len(calls) != 1 || strings.Join(calls[0], "\x00") != strings.Join(want, "\x00") {
+		t.Fatalf("calls %v, want [%v]", calls, want)
+	}
+	for _, a := range calls[0] {
+		if a == "-s" || a == "install" {
+			t.Fatalf("unexpected %q in %v", a, calls[0])
+		}
+	}
+}
