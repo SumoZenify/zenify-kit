@@ -235,3 +235,44 @@ func TestPlan_HeaderActions(t *testing.T) { // SC-6
 		st("specs/r/2026-01-03-c-design.md", "built", false), st("specs/r/2026-01-04-d-design.md", "unknown", false)}, time.Now())
 	assertPaths(t, acts, KindHeader, []string{"specs/r/2026-01-01-a-design.md", "specs/r/2026-01-02-b-design.md"})
 }
+
+func TestApplyThenPlanIsEmpty(t *testing.T) { // SC-7
+	now := time.Date(2026, 10, 13, 0, 0, 0, 0, time.UTC)
+	fs := newMemFS(map[string]string{"/s/specs/s/2026-01-01-one-design.md": "# one\n\n**Status:** Draft\n\nsee reference/r/a.md\n",
+		"/s/plans/s/2026-01-01-one.md": "see reference/r/b.md\n", "/s/reference/r/a.md": "", "/s/reference/r/b.md": "B", "/s/handoff/2026-01-01-x.md": "X"})
+	sts := []speclife.Status{st("specs/s/2026-01-01-one-design.md", "built", true)}
+	acts, _ := Plan(fs, "/s", sts, now)
+	if notes := Apply(fs, "/s", "/v", acts); len(notes) != 0 {
+		t.Fatal(notes)
+	}
+	for p, want := range map[string]string{"/v/research/r/b.md": "B", "/v/notes/2026-01-01-x.md": "X", "/v/notes/plans/s/2026-01-01-one.md": "see reference/r/b.md\n"} {
+		if got, _ := fs.ReadFile(p); string(got) != want {
+			t.Errorf("%s = %q", p, got)
+		}
+	}
+	for _, gone := range []string{"/s/plans/s/2026-01-01-one.md", "/s/reference/r/b.md", "/s/handoff/2026-01-01-x.md"} {
+		if _, err := fs.Stat(gone); err == nil {
+			t.Errorf("%s still there", gone)
+		}
+	}
+	if b, _ := fs.ReadFile("/s/specs/s/2026-01-01-one-design.md"); !strings.Contains(string(b), "**Status:** built") {
+		t.Errorf("header not written: %q", b)
+	}
+	sts[0].HasPlan = false
+	if again, _ := Plan(fs, "/s", sts, now); len(again) != 0 {
+		t.Fatalf("second plan not empty: %v", again)
+	}
+}
+
+func TestApplyCopyFailureKeepsFile(t *testing.T) {
+	fs := newMemFS(map[string]string{"/s/specs/.keep": "", "/s/handoff/ROADMAP.md": "R"})
+	fs.failWrite["/v/notes/ROADMAP.md"] = true
+	acts, _ := Plan(fs, "/s", nil, time.Now())
+	notes := Apply(fs, "/s", "/v", acts)
+	if len(notes) != 1 || !strings.Contains(notes[0], "keep handoff/ROADMAP.md") {
+		t.Fatal(notes)
+	}
+	if _, err := fs.Stat("/s/handoff/ROADMAP.md"); err != nil {
+		t.Fatal("deleted despite copy failure")
+	}
+}

@@ -65,6 +65,10 @@ var (
 	labelLine  = regexp.MustCompile(`^\*\*[^*]+:\*\*`)
 )
 
+// detailArrow separates the old and new value in a header action's Detail; Apply reads the new
+// state back from the text after it.
+const detailArrow = " → "
+
 // statusLabel is the label rewriteHeader inserts when a spec has no status line.
 const statusLabel = "**Trạng thái:** " //znf:allow-lang
 
@@ -167,6 +171,83 @@ func linked(sources []string, p string) bool {
 	return false
 }
 
+// Apply performs actions. Every deletion first copies the file to a local demotion dir
+// (reference → <viewDir>/research, handoff → <viewDir>/notes, plans → <viewDir>/notes/plans);
+// a failed copy keeps the file. Headers are written via temp + rename, keeping the file mode.
+// Notes report failures only; re-running Plan after Apply yields nothing new.
+func Apply(fs FS, store, viewDir string, actions []Action) []string {
+	var notes []string
+	for _, a := range actions {
+		src := filepath.Join(store, filepath.FromSlash(a.Path))
+		if a.Kind == KindHeader {
+			i := strings.LastIndex(a.Detail, detailArrow)
+			if i < 0 {
+				notes = append(notes, "docs sweep: header "+a.Path+": no target state in "+a.Detail)
+				continue
+			}
+			if err := writeHeader(fs, src, speclife.State(a.Detail[i+len(detailArrow):])); err != nil {
+				notes = append(notes, "docs sweep: header "+a.Path+": "+err.Error())
+			}
+			continue
+		}
+		dst := demotionPath(viewDir, a)
+		if dst == "" {
+			continue
+		}
+		if err := copyFile(fs, src, dst); err != nil {
+			notes = append(notes, "docs sweep: keep "+a.Path+": "+err.Error())
+			continue
+		}
+		if err := fs.Remove(src); err != nil {
+			notes = append(notes, "docs sweep: remove "+a.Path+": "+err.Error())
+		}
+	}
+	return notes
+}
+
+// demotionPath is where a deleted file's copy goes ("" for a non-delete kind).
+func demotionPath(viewDir string, a Action) string {
+	switch a.Kind {
+	case KindDeleteReference:
+		return filepath.Join(viewDir, "research", filepath.FromSlash(strings.TrimPrefix(a.Path, "reference/")))
+	case KindDeleteHandoff:
+		return filepath.Join(viewDir, "notes", filepath.FromSlash(strings.TrimPrefix(a.Path, "handoff/")))
+	case KindDeletePlan:
+		return filepath.Join(viewDir, "notes", filepath.FromSlash(a.Path))
+	}
+	return ""
+}
+
+func copyFile(fs FS, src, dst string) error {
+	b, err := fs.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	if err := fs.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	return fs.WriteFile(dst, b, 0o644)
+}
+
+func writeHeader(fs FS, p string, state speclife.State) error {
+	info, err := fs.Stat(p)
+	if err != nil {
+		return err
+	}
+	b, err := fs.ReadFile(p)
+	if err != nil {
+		return err
+	}
+	out, changed, _ := rewriteHeader(b, state)
+	if !changed {
+		return nil
+	}
+	if err := fs.WriteFile(p+".tmp", out, info.Mode().Perm()); err != nil {
+		return err
+	}
+	return fs.Rename(p+".tmp", p)
+}
+
 // rewriteHeader sets a spec's status header to state. The first "**Trạng thái:**"/"**Status:**" //znf:allow-lang
 // line has its value replaced (label kept); with none, a status line is inserted after the last
 // "**Label:**" line before the first "---" or "## ", else after the first H1 framed by blank lines.
@@ -183,9 +264,9 @@ func rewriteHeader(body []byte, state speclife.State) (out []byte, changed bool,
 			return body, false, ""
 		}
 		lines[i] = "**" + m[1] + ":** " + string(state)
-		return []byte(strings.Join(lines, "\n")), true, old + " → " + string(state)
+		return []byte(strings.Join(lines, "\n")), true, old + detailArrow + string(state)
 	}
-	note = "insert → " + string(state)
+	note = "insert" + detailArrow + string(state)
 	status := statusLabel + string(state)
 	lastLabel := -1
 	for i, l := range lines {
