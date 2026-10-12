@@ -43,7 +43,7 @@ func TestWtSweep_CallsDocsSweep(t *testing.T) { // SC-11
 	writeF(t, filepath.Join(root, ".zenify", "manifest.json"), "{}") // root is a workspace
 	var got []string
 	old := sweepDocs
-	sweepDocs = func(ws string, apply, noFetch bool, _ io.Writer) error {
+	sweepDocs = func(ws, _ string, apply, noFetch bool, _ io.Writer) error {
 		got = append(got, fmt.Sprintf("%s apply=%v noFetch=%v", ws, apply, noFetch))
 		return nil
 	}
@@ -64,7 +64,7 @@ func TestWtSweep_NoWorkspaceSkipsDocsSweep(t *testing.T) {
 	t.Setenv("WT_REPO_ROOT", root)
 	called := false
 	old := sweepDocs
-	sweepDocs = func(string, bool, bool, io.Writer) error { called = true; return nil }
+	sweepDocs = func(string, string, bool, bool, io.Writer) error { called = true; return nil }
 	t.Cleanup(func() { sweepDocs = old })
 	runWt(t, root, "sweep", "--dry-run")
 	if called {

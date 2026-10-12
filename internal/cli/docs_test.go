@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -159,5 +160,46 @@ func TestDocsSweep_DryRunPrintsPlanAndTouchesNothing(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(store, "handoff", "ROADMAP.md")); err != nil {
 		t.Fatal("dry-run deleted a file")
+	}
+}
+
+// --dir scopes the sweep to an explicit store: ZENIFY_HOME's store is never touched, and with no
+// --dir the store still resolves through ZENIFY_HOME. HOME and ZENIFY_HOME both point at temp dirs.
+func TestDocsSweep_DirScopesStore(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	zh := t.TempDir()
+	t.Setenv("ZENIFY_HOME", zh)
+	real := filepath.Join(zh, "knowledge")
+	clone := filepath.Join(t.TempDir(), "clone")
+	third := filepath.Join(t.TempDir(), "third")
+	for _, s := range []string{real, clone, third} {
+		writeF(t, filepath.Join(s, "specs", "r", "2026-01-01-a-design.md"), "# a\n")
+		writeF(t, filepath.Join(s, "handoff", "old.md"), "x")
+	}
+	exists := func(s string) bool {
+		_, err := os.Stat(filepath.Join(s, "handoff", "old.md"))
+		return err == nil
+	}
+	if err := docsSweepCore(t.TempDir(), clone, true, true, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if exists(clone) {
+		t.Fatal("--dir store was not swept")
+	}
+	if !exists(real) || !exists(third) {
+		t.Fatal("sweep with an explicit dir touched another store")
+	}
+	var e bytes.Buffer
+	if err := docsSweepCore(t.TempDir(), "", false, true, &e); err != nil {
+		t.Fatal(err)
+	}
+	if !exists(real) || !strings.Contains(e.String(), "delete-handoff handoff/old.md") {
+		t.Fatalf("default path should resolve to the ZENIFY_HOME store: %s", e.String())
+	}
+	if err := docsSweepCore(t.TempDir(), "", true, true, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if exists(real) {
+		t.Fatal("default path did not resolve to the ZENIFY_HOME store")
 	}
 }

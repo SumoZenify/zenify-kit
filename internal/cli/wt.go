@@ -381,7 +381,7 @@ func newWtSweepCmd() *cobra.Command {
 					Stdout: cmd.OutOrStdout(), Stderr: cmd.ErrOrStderr(),
 				})
 				if err == nil {
-					if e := sweepDocs(ws, !dry, true, cmd.ErrOrStderr()); e != nil {
+					if e := sweepDocs(ws, "", !dry, true, cmd.ErrOrStderr()); e != nil {
 						uiErr(cmd).Note("docs sweep: " + e.Error())
 					}
 				}
@@ -399,7 +399,7 @@ func newWtSweepCmd() *cobra.Command {
 			})
 			if err == nil {
 				if ws, ok := wt.FindWorkspaceRoot(root); ok {
-					if e := sweepDocs(ws, !dry, true, cmd.ErrOrStderr()); e != nil {
+					if e := sweepDocs(ws, "", !dry, true, cmd.ErrOrStderr()); e != nil {
 						uiErr(cmd).Note("docs sweep: " + e.Error())
 					}
 				}

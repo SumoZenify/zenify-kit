@@ -53,7 +53,8 @@ Lệnh kiểm tra trạng thái store trước: sạch thì không chạm mạng
 |---|---|
 | `--apply` | Thực hiện thay đổi. Mặc định chỉ in kế hoạch. |
 | `--no-fetch` | Bỏ `git fetch` khi tính trạng thái spec, dùng ref local. |
-| `--workspace` | Thư mục workspace; mặc định tự tìm, không có thì dùng thư mục hiện tại. |
+| `--workspace` | Thư mục workspace; mặc định tự tìm, không có thì dùng thư mục hiện tại. Chỉ chọn nơi đặt bản hạ cấp, không chọn store. |
+| `--dir` | Knowledge store cần dọn. Mặc định tự tìm như `docs sync`. Dùng khi thử trên bản clone để không đụng store thật. |
 
 ```bash
 zenify docs sweep

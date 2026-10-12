@@ -72,12 +72,15 @@ func docsSyncCore(workspace string, errW io.Writer) error {
 
 // docsSweepCore plans (and with apply, executes) the knowledge-store sweep. Everything goes to
 // stderr and it always returns nil (fail-open) so wt sweep can chain it.
-func docsSweepCore(workspaceDir string, apply, noFetch bool, stderr io.Writer) error {
+func docsSweepCore(workspaceDir, storeDir string, apply, noFetch bool, stderr io.Writer) error {
 	if workspaceDir == "" {
 		workspaceDir, _ = os.Getwd()
 	}
 	u := ui.New(stderr)
-	store := resolveDocsStore(workspaceDir, os.Getenv, os.UserHomeDir, os.Stat, os.ReadDir)
+	store := storeDir // an explicit --dir wins; resolveDocsStore is never consulted
+	if store == "" {
+		store = resolveDocsStore(workspaceDir, os.Getenv, os.UserHomeDir, os.Stat, os.ReadDir)
+	}
 	if fi, err := os.Stat(filepath.Join(store, "specs")); err != nil || !fi.IsDir() {
 		u.Note("docs sweep: store " + store + " không có specs/, bỏ qua") //znf:allow-lang
 		return nil
@@ -152,7 +155,7 @@ func newDocsCmd() *cobra.Command {
 	sync.Flags().StringVar(&dir, "dir", "", "thư mục repo docs (mặc định tự tìm theo layout)")                       //znf:allow-lang
 	cmd.AddCommand(sync)
 
-	var sweepWs string
+	var sweepWs, sweepDir string
 	var sweepApply, sweepNoFetch bool
 	sweep := &cobra.Command{
 		Use:   "sweep",
@@ -162,12 +165,13 @@ func newDocsCmd() *cobra.Command {
 			if sweepWs == "" {
 				sweepWs = workspaceOrCwd("", cmd.ErrOrStderr())
 			}
-			return docsSweepCore(sweepWs, sweepApply, sweepNoFetch, cmd.ErrOrStderr())
+			return docsSweepCore(sweepWs, sweepDir, sweepApply, sweepNoFetch, cmd.ErrOrStderr())
 		},
 	}
 	sweep.Flags().BoolVar(&sweepApply, "apply", false, "thực hiện thay đổi (mặc định chỉ in kế hoạch)")          //znf:allow-lang
 	sweep.Flags().BoolVar(&sweepNoFetch, "no-fetch", false, "bỏ git fetch khi tính trạng thái spec")             //znf:allow-lang
 	sweep.Flags().StringVar(&sweepWs, "workspace", "", "thư mục workspace (mặc định: tự tìm, không có thì cwd)") //znf:allow-lang
+	sweep.Flags().StringVar(&sweepDir, "dir", "", "knowledge store cần dọn (mặc định: tự tìm như docs sync)")    //znf:allow-lang
 	cmd.AddCommand(sweep)
 
 	var genOut string
