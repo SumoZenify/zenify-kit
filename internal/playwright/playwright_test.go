@@ -99,7 +99,7 @@ func desiredOut(home string) string {
 
 func TestDesiredArgs(t *testing.T) {
 	got := DesiredArgs("/h")
-	want := []string{"@playwright/mcp@latest", "--isolated", "--caps=storage", "--output-dir", filepath.Join("/h", ".zenify", "playwright")}
+	want := []string{MCPPackage, "--isolated", "--caps=storage", "--output-dir", filepath.Join("/h", ".zenify", "playwright")}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("got %v want %v", got, want)
 	}
@@ -136,6 +136,8 @@ func TestBootstrapMigration(t *testing.T) {
 		{"legacy at local scope", home, strings.Replace(mcpOut("  Args: @playwright/mcp@latest\n"), "User config (available in all your projects)", "Local config (private to you in this project)", 1), nil, nil, "custom MCP registration kept"},
 		{"no scope line", home, strings.Replace(mcpOut("  Args: @playwright/mcp@latest\n"), "  Scope: User config (available in all your projects)\n", "", 1), nil, nil, "custom MCP registration kept"},
 		{"legacy with spaced home", spaced, mcpOut("  Args: @playwright/mcp@latest\n"), nil, []string{rm, addFor(spaced)}, ""},
+		{"older pin with kit flags", home, mcpOut("  Args: @playwright/mcp@0.0.1 " + strings.Join(DesiredArgs(home)[1:], " ") + "\n"), nil, []string{rm, addFor(home)}, ""},
+		{"older pin with user flags", home, mcpOut("  Args: @playwright/mcp@0.0.1 --headless\n"), nil, nil, "custom MCP registration kept"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -167,7 +169,7 @@ func TestBootstrapMigration(t *testing.T) {
 			if !strings.Contains(buf.String(), c.wantOut) {
 				t.Fatalf("stdout %q missing %q", buf.String(), c.wantOut)
 			}
-			if last := calls[len(calls)-1]; last != "npx playwright install chromium" {
+			if last := calls[len(calls)-1]; last != "npx --yes --package "+MCPPackage+" playwright install chromium" {
 				t.Fatalf("chromium install step missing: %v", calls)
 			}
 		})
@@ -176,7 +178,7 @@ func TestBootstrapMigration(t *testing.T) {
 
 func TestRegistrationMissingArgs(t *testing.T) {
 	st, missing := Registration(Options{Output: getOutput(mcpOut("  Args: @playwright/mcp@latest --headless\n")), Home: "/h"})
-	if st != RegCustom || len(missing) != 4 || missing[0] != "--isolated" {
+	if st != RegCustom || len(missing) != 5 || missing[0] != MCPPackage || missing[1] != "--isolated" {
 		t.Fatalf("got %v %v", st, missing)
 	}
 }
@@ -234,6 +236,12 @@ func TestRegistrationCodexParsesFixture(t *testing.T) {
 	}
 	if st, _ := Registration(o); st != RegLegacyDefault {
 		t.Fatalf("old args should be legacy-default, got %v", st)
+	}
+	o.Output = func(string, []string) ([]byte, error) {
+		return []byte(`{"transport":{"command":"npx","args":["@playwright/mcp@0.0.1","--isolated","--caps=storage","--output-dir","/Users/believe/.zenify/playwright"]}}`), nil
+	}
+	if st, _ := Registration(o); st != RegLegacyDefault {
+		t.Fatalf("older pin with kit flags should be legacy-default, got %v", st)
 	}
 	o.Output = func(string, []string) ([]byte, error) {
 		return []byte(`{"transport":{"command":"npx","args":["@playwright/mcp@latest","--browser","firefox"]}}`), nil

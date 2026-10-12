@@ -58,13 +58,29 @@ func browsersDir(getenv func(string) string, goos string) string {
 	}
 }
 
+// MCPVersion pins @playwright/mcp. The MCP server bundles its own
+// playwright-core, whose browsers.json names the one chromium revision it can
+// launch (0.0.83 → 1247). A bare `npx playwright install chromium` resolves a
+// different playwright and installs a different revision (1248 on 2026-10-12),
+// so the browser is installed through the pinned MCP package itself, and a new
+// chromium download reaches users only when this constant is bumped.
+const MCPVersion = "0.0.83"
+
+// MCPPackage is the npx package spec the kit registers and installs browsers with.
+const MCPPackage = "@playwright/mcp@" + MCPVersion
+
+// isKitPackage reports whether a is any @playwright/mcp@<spec>: the slot the
+// kit owns, so an older pin (or the pre-pin @latest) migrates instead of
+// being kept as a custom registration.
+func isKitPackage(a string) bool { return strings.HasPrefix(a, "@playwright/mcp@") }
+
 // DesiredArgs are the npx args the kit registers the Playwright MCP with.
 // --isolated keeps the profile in memory so concurrent sessions do not fight
 // over one persistent profile (login comes from the state file each verify);
 // --caps=storage enables browser_set_storage_state; the output dir keeps
 // artifacts under the kit's own home dir.
 func DesiredArgs(home string) []string {
-	return []string{"@playwright/mcp@latest", "--isolated", "--caps=storage", "--output-dir", filepath.Join(home, ".zenify", "playwright")}
+	return []string{MCPPackage, "--isolated", "--caps=storage", "--output-dir", filepath.Join(home, ".zenify", "playwright")}
 }
 
 // RegState classifies the current Playwright MCP registration.
@@ -130,8 +146,10 @@ func Registration(o Options) (RegState, []string) {
 	// Compare the raw remainder: a home dir with spaces would split into extra tokens.
 	case rawArgs == strings.Join(want, " "):
 		return RegDesired, nil
-	case rawArgs == want[0]:
+	case len(args) == 1 && isKitPackage(args[0]):
 		return RegLegacyDefault, missing
+	case len(args) > 1 && isKitPackage(args[0]) && strings.TrimPrefix(rawArgs, args[0]+" ") == strings.Join(want[1:], " "):
+		return RegLegacyDefault, missing // kit flags under an older pin
 	}
 	return RegCustom, missing
 }
@@ -179,7 +197,7 @@ func registrationCodex(o Options) (RegState, []string) {
 	if strings.Join(args, " ") == strings.Join(want, " ") {
 		return RegDesired, nil
 	}
-	if len(args) == 1 && args[0] == want[0] {
+	if len(args) >= 1 && isKitPackage(args[0]) && (len(args) == 1 || strings.Join(args[1:], " ") == strings.Join(want[1:], " ")) {
 		return RegLegacyDefault, missing
 	}
 	return RegCustom, missing
@@ -236,7 +254,7 @@ func Bootstrap(o Options) error {
 			return err
 		}
 	case RegLegacyDefault:
-		note("playwright: migrating MCP registration to storage caps")
+		note("playwright: migrating MCP registration to %s", MCPPackage)
 		if err := o.Runner("claude", []string{"mcp", "remove", "playwright", "-s", "user"}); err != nil {
 			return fmt.Errorf("remove legacy playwright MCP: %w", err)
 		}
@@ -248,8 +266,8 @@ func Bootstrap(o Options) error {
 	default:
 		note("playwright: MCP server already registered")
 	}
-	note("playwright: ensuring chromium is installed")
-	if err := o.Runner("npx", []string{"playwright", "install", "chromium"}); err != nil {
+	note("playwright: ensuring chromium for %s (downloads a few hundred MB when its revision is missing)", MCPPackage)
+	if err := o.Runner("npx", []string{"--yes", "--package", MCPPackage, "playwright", "install", "chromium"}); err != nil {
 		return fmt.Errorf("install chromium: %w", err)
 	}
 	return nil
@@ -271,7 +289,7 @@ func bootstrapCodex(o Options, note func(string, ...any)) error {
 		note("playwright: registering MCP server (codex)")
 		return add()
 	case RegLegacyDefault:
-		note("playwright: migrating codex MCP registration to storage caps")
+		note("playwright: migrating codex MCP registration to %s", MCPPackage)
 		if err := o.Runner("codex", []string{"mcp", "remove", "playwright"}); err != nil {
 			return fmt.Errorf("remove legacy playwright MCP (codex): %w", err)
 		}
