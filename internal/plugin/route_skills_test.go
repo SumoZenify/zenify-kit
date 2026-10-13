@@ -9,10 +9,12 @@ import (
 func TestFixSkill_RoundCounterRoutesInvestigator(t *testing.T) {
 	s := syncedAsset(t, "skills/fix/SKILL.md")
 	assertContainsAll(t, "fix/SKILL.md", s, []string{
-		"ROUND", "select-route investigator ROUND=", "\"site\":\"investigator\"", "Think hard before responding.", "references/isolation.md",
+		"ROUND", "model: sonnet", "model: opus", "effort: xhigh", "Think hard before responding.", "references/isolation.md",
 	})
-	if strings.Contains(s, "model: 'sonnet'") {
-		t.Error("fix must take the investigator model from select-route, not a literal")
+	for _, gone := range []string{"select-route", "\"site\":\"investigator\""} {
+		if strings.Contains(s, gone) {
+			t.Errorf("fix/SKILL.md still carries %q", gone)
+		}
 	}
 	if len(s) > 8192 || strings.Count(s, "\n") > 200 {
 		t.Fatalf("fix over cap: %d bytes", len(s))
@@ -21,9 +23,9 @@ func TestFixSkill_RoundCounterRoutesInvestigator(t *testing.T) {
 	assertContainsAll(t, "isolation.md", iso, []string{"wt new", "--type fix", "--another"})
 }
 
-func TestSDD_ImplementerTierFromSelectRoute(t *testing.T) {
+func TestSDD_ImplementerModelFromPlanLine(t *testing.T) {
 	s := syncedAsset(t, "skills/subagent-driven-development/SKILL.md")
-	assertContainsAll(t, "sdd/SKILL.md", s, []string{"select-route implementer FAIL=", "FAIL=", "references/model-selection.md"})
+	assertContainsAll(t, "sdd/SKILL.md", s, []string{"**Model:**", "FAIL=2", "references/model-selection.md"})
 	if strings.Contains(s, "SPEC=") {
 		t.Error("SDD SKILL.md must not route on SPEC=")
 	}
@@ -34,7 +36,14 @@ func TestSDD_ImplementerTierFromSelectRoute(t *testing.T) {
 		t.Fatalf("sdd over cap: %d bytes", len(s))
 	}
 	ms := syncedAsset(t, "skills/subagent-driven-development/references/model-selection.md")
-	assertContainsAll(t, "model-selection.md", ms, []string{"FAIL=2", "FAIL=3", "investigator ROUND=3", "\"site\":\"implementer\""})
+	assertContainsAll(t, "model-selection.md", ms, []string{"**Model:**", "FAIL=2", "FAIL=3"})
+	for name, body := range map[string]string{"sdd/SKILL.md": s, "model-selection.md": ms} {
+		for _, gone := range []string{"select-route", "\"site\":\"implementer\"", "never the effort"} {
+			if strings.Contains(body, gone) {
+				t.Errorf("%s still carries %q", name, gone)
+			}
+		}
+	}
 	for _, gone := range []string{"inside a fenced code block", "SPEC=code"} {
 		if strings.Contains(ms, gone) {
 			t.Errorf("model-selection.md still carries %q", gone)
@@ -42,6 +51,14 @@ func TestSDD_ImplementerTierFromSelectRoute(t *testing.T) {
 	}
 	if strings.Contains(ms, "Fix-loop escalation (rounds 4-5)") {
 		t.Error("model-selection.md still carries the round-based rule")
+	}
+}
+
+func TestCookSkill_ImplementerModelFromPlanLine(t *testing.T) {
+	s := syncedAsset(t, "skills/cook/SKILL.md")
+	assertContainsAll(t, "cook/SKILL.md", s, []string{"**Model:**"})
+	if len(s) > 8192 {
+		t.Fatalf("cook over cap: %d bytes", len(s))
 	}
 }
 
@@ -70,7 +87,7 @@ func TestScoutAgent_ConsumerCountLine(t *testing.T) {
 
 func TestWritingPlans_SteeringAtTaskSplit(t *testing.T) {
 	s := syncedAsset(t, "skills/writing-plans/SKILL.md")
-	assertContainsAll(t, "writing-plans/SKILL.md", s, []string{"Think hard before responding.", "unmeasured"})
+	assertContainsAll(t, "writing-plans/SKILL.md", s, []string{"Think hard before responding.", "unmeasured", "**Model:** sonnet"})
 	if len(s) > 8192 || strings.Count(s, "\n") > 200 {
 		t.Fatalf("writing-plans over cap: %d bytes", len(s))
 	}

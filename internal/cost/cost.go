@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -83,6 +84,7 @@ type Report struct {
 	Sessions     int       `json:"sessions"`
 	SubagentRuns int       `json:"subagent_runs"`
 	Lines        int       `json:"lines"`
+	Skipped      int       `json:"skipped"`
 	First        time.Time `json:"first"`
 	Last         time.Time `json:"last"`
 
@@ -260,6 +262,10 @@ func Scan(root string, opt Options) (*Report, error) {
 		id := strings.TrimSuffix(filepath.Base(path), ".jsonl")
 		s := get(id)
 		n, err := scanMain(path, s, r, opt.Since)
+		if errors.Is(err, fs.ErrNotExist) {
+			r.Skipped++ // dangling symlink; its empty session is dropped below
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -268,6 +274,10 @@ func Scan(root string, opt Options) (*Report, error) {
 		subs, _ := filepath.Glob(filepath.Join(root, id, "subagents", "agent-*.jsonl"))
 		for _, sp := range subs {
 			n, turns, idle, err := scanSub(sp, s, r, opt.Since)
+			if errors.Is(err, fs.ErrNotExist) {
+				r.Skipped++
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}

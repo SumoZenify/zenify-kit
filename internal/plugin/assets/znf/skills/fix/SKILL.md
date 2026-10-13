@@ -52,27 +52,13 @@ back here; a different error resets to 1 and says so). ROUND ≥ 2 →
 **Think hard before responding.**
 
 **On the Wide path: one investigator agent per hypothesis, all dispatched in ONE message, each told to return ≤ 40 lines (evidence to a file).**
-Identify 2-3 independent hypotheses and the evidence that settles each; the model is not yours to
-pick:
-
-```bash
-ROUTE=$(bash ~/.claude/skills/znf/skills/_shared/scripts/select-route investigator ROUND=$ROUND); IMODEL=$(printf '%s\n' "$ROUTE" | sed -n '1s/^model=//p')
-```
-
-Dispatch one `Explore` agent per hypothesis with `model` = `$IMODEL` (`Explore` pins no model);
-print `$ROUTE` line 2 on the report. From ROUND 3, also hand each the logs, killed hypotheses +
-evidence, and diffs already tried, as file paths. Each gets one hypothesis, its settling evidence,
-and: *return the evidence for AND against, plus a verdict — do not fix anything.* Kill hypotheses
-with evidence; **ask each agent for its report by name** — a lost report reads like one that found
-nothing (`CLAUDE.md §3`, `references/why-diagnosis-first.md`). Record the dispatch, best-effort:
-
-```bash
-command -v zenify >/dev/null && command -v jq >/dev/null && jq -nc --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  --arg repo "$(basename "$(git rev-parse --show-toplevel 2>/dev/null)")" --arg branch "$(git branch --show-current 2>/dev/null)" \
-  --arg round "$ROUND" --arg model "$IMODEL" --arg strong "${ZNF_STRONG_MODEL:-opus}" \
-  '{ts:$ts,repo:$repo,branch:$branch,"site":"investigator",features:{ROUND:$round},gates:(if ($round|tonumber)>=3 then ["ROUND>=3"] elif ($round|tonumber)==2 then ["ROUND=2"] else [] end),model:$model,strong:$strong}' \
-  | zenify route-log record 2>/dev/null || true
-```
+Identify 2-3 independent hypotheses and the evidence that settles each; the model is set by ROUND,
+not picked: dispatch one `Explore` agent per hypothesis with ROUND 1 `model: sonnet`, ROUND 2
+`model: opus`, ROUND ≥ 3 `model: opus` + `effort: xhigh`, and from ROUND 3 hand each the logs,
+killed hypotheses + evidence, and diffs already tried, as file paths. Each gets one hypothesis, its
+settling evidence, and: *return the evidence for AND against, plus a verdict — do not fix anything.*
+Kill hypotheses with evidence; **ask each agent for its report by name** — a lost report reads like
+one that found nothing (`CLAUDE.md §3`, `references/why-diagnosis-first.md`).
 
 ## Step 2: Verify the real cause
 

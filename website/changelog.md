@@ -8,6 +8,17 @@ Mỗi release một mục, viết cho người dùng kit, không phải danh sá
 
 Bản trước `v0.22.0`: xem [GitHub Releases](https://github.com/ZenifyAIContactCenter/zenify-kit/releases).
 
+## v0.32.0
+
+*2026-10-13*
+
+- Cách chọn model đổi sang quy tắc viết sẵn trong skill: implementer lấy model từ dòng `**Model:**` của task trong plan (mặc định `sonnet`, test fail lần 2 lên `opus`), investigator của `/znf:fix` theo vòng (`sonnet`, `opus`, rồi `opus` ở effort `xhigh`), review theo tier. Script `select-route` và skill `/znf:advisor` đã bị xoá; advisor native của Claude Code do từng người tự bật. Xem [Chọn model](/concepts/model-routing).
+- Agent `architect` được thay bằng `spec-reviewer` (`model: fable`; model bị allowlist chặn thì chạy model kế thừa kèm cảnh báo, máy không có Fable chưa đo): brainstorming dispatch một lần sau bước tự soát spec, báo requirement thiếu, FR/SC không kiểm được, mâu thuẫn và tên chưa ground. Memo thiết kế giờ viết inline.
+- `zenify up` và hook SessionStart xoá `ZNF_STRONG_MODEL` khỏi `~/.claude/settings.json` (mọi giá trị); `zenify rules lint` không còn cấm tên model mạnh trong `.md` của plugin.
+- `zenify cost` không còn crash khi một file transcript không còn tồn tại (ví dụ symlink hỏng); số file bỏ qua được in ra.
+- Knowledge hygiene (PR #154): lệnh `zenify docs sweep` (mặc định dry-run, `--dir` để chỉ rõ store) dọn plan đã build, handoff quá hạn và reference không còn link; `wt sweep` gọi nó sau khi dọn worktree đã merge. Hook `write-guard` (Claude) chặn ghi sai chỗ theo quy ước thư mục; `zenify doctor` thêm check `workspace-root` và `memory-index`. Research nháp ghi vào `docs/research`, ghi chú phiên ở lại `docs/notes`. Xem [Bố cục workspace](/concepts/workspace-layout).
+- `/znf:ship` rút gọn thân PR: bỏ phần SC đã sửa và sổ deferred (PR #155).
+
 ## v0.31.1
 
 *2026-10-12*
@@ -109,8 +120,8 @@ Bản trước `v0.22.0`: xem [GitHub Releases](https://github.com/ZenifyAIConta
 
 - Chọn model cho subagent theo đặc điểm task, không theo cảm nhận của agent: script `select-route` nhận site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`) và số liệu (số repo, chạm contract chia sẻ, vòng thứ mấy, test fail mấy lần), trả về model và lý do; skill in lý do lên báo cáo. Xem [Chọn model](/concepts/model-routing).
 - Model mạnh của máy đọc từ env `ZNF_STRONG_MODEL` (`fable` hoặc `opus`; thiếu hoặc khác → `opus`, không cảnh báo). `zenify up` ghi `opus` vào `~/.claude/settings.json` khi chưa có, `zenify down` gỡ giá trị mặc định. Teammate dùng Pro không bị dispatch tới model account không có. `zenify rules lint` từ chối tên model mạnh viết trực tiếp trong `.md` của plugin.
-- Agent `architect` cho brainstorming tier architectural: chỉ dispatch khi một gate fire (từ 2 repo, contract chia sẻ, contract mới, vùng critical), một lần mỗi cook, viết memo mười mục; spec lấy Approach, Blast-radius, Flow, Rollback từ memo. Không gate nào fire thì memo viết inline. Xem [agent architect](/reference/agents/architect).
-- Skill `/znf:advisor`: ý kiến thứ hai từ model mạnh trong context mới cho câu hỏi bất kỳ, gọi tay hoặc bằng cụm chữ tường minh; thay cho việc đổi model cả session. Xem [`/znf:advisor`](/reference/skills/advisor).
+- Agent `architect` cho brainstorming tier architectural: chỉ dispatch khi một gate fire (từ 2 repo, contract chia sẻ, contract mới, vùng critical), một lần mỗi cook, viết memo mười mục; spec lấy Approach, Blast-radius, Flow, Rollback từ memo. Không gate nào fire thì memo viết inline. Xem agent `architect` (đã thay bằng `spec-reviewer` ở v0.32.0).
+- Skill `/znf:advisor` (đã bỏ ở v0.32.0): ý kiến thứ hai từ model mạnh trong context mới cho câu hỏi bất kỳ, gọi tay hoặc bằng cụm chữ tường minh; thay cho việc đổi model cả session. Xem `/znf:advisor`.
 - `/znf:fix` đếm `ROUND` trong ship-pack; investigator vòng 1 chạy sonnet, vòng 2 opus với context mới, từ vòng 3 model mạnh kèm log và các giả thuyết đã loại.
 - SDD chọn tier implementer bằng độ cụ thể của plan (`SPEC=code` → haiku, prose → sonnet) và số lần cùng một test fail (lần 2 → opus kèm brief lỗi, lần 3 → dừng implement, chạy investigator). Escalation đổi tier, không đổi effort.
 - Review T3 hai lần liên tiếp không shippable trên cùng branch → reviewer lên model mạnh; `zenify review-log` ghi thêm `branch` để tính streak.

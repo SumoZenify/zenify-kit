@@ -190,3 +190,16 @@ func TestBySkillRows_TieBreakByName(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderCost_PrintsSkipped(t *testing.T) {
+	var b bytes.Buffer
+	renderCost(&b, &cost.Report{Skipped: 2}, false)
+	if !strings.Contains(b.String(), "skipped 2 unreadable transcript file(s)") {
+		t.Fatalf("missing skipped line:\n%s", b.String())
+	}
+	b.Reset()
+	renderCost(&b, &cost.Report{}, false)
+	if strings.Contains(b.String(), "skipped") {
+		t.Fatalf("unexpected skipped line:\n%s", b.String())
+	}
+}

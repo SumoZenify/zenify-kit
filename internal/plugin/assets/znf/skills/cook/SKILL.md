@@ -96,7 +96,7 @@ Steps 0–5 run in the **main loop** on Opus. Unlisted effort: default.
 | Step | Runs as | Model / effort |
 |---|---|---|
 | 4 Scout | **`scout` agent** | sonnet (pinned in the agent definition) |
-| 6 Implement | subagents via SDD | SDD Model Selection: `sonnet`; `FAIL=2` → `opus`; `xhigh` on sonnet+ only |
+| 6 Implement | subagents via SDD | plan's `**Model:**` line (default sonnet); `FAIL=2` → opus; `xhigh` on sonnet+ only |
 | 6 Fix loop | r1-3 same implementer · r4-5 fresh, +1 tier | unchanged · `opus` **`xhigh`** |
 | 6/7 UI check | `znf:ui-verifier` agent | sonnet (pinned) |
 | 7 Ship review | `code-reviewer` agent | **explicit, scaled to diff**; effort `high` |

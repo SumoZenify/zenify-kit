@@ -45,17 +45,3 @@ command -v zenify >/dev/null && command -v jq >/dev/null && {
 
 - `zenify`/`jq` missing, any command errors → SKIP silently (`|| true`), the review ends normally. Capture does NOT change `shippable`, does NOT print on the report.
 - Review it later with `zenify review-log` (summary) or `zenify review-log --json` (for M6 sync).
-
-## Route capture (reviewer)
-
-Only when `RMODEL` is not `inherit`:
-
-```bash
-command -v zenify >/dev/null && command -v jq >/dev/null && {
-  jq -nc --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg repo "$(basename "$(git rev-parse --show-toplevel)")" \
-    --arg branch "$(git branch --show-current)" --arg tier "$TIER" --arg streak "$STREAK" --arg model "$RMODEL" \
-    --arg strong "${ZNF_STRONG_MODEL:-opus}" \
-    '{ts:$ts,repo:$repo,branch:$branch,site:"reviewer",features:{TIER:$tier,BLOCKED_STREAK:$streak},gates:["BLOCKED_STREAK>=2"],model:$model,strong:$strong}' \
-    | zenify route-log record 2>/dev/null || true
-} || true
-```

@@ -9,11 +9,11 @@ import (
 func TestWriteLoadSummarize(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "rl")
 	recs := []Record{
-		{TS: "2026-09-21T01:00:00Z", Repo: "kit", Branch: "b1", Site: "architect", Features: map[string]string{"TIER": "architectural", "SHARED": "1"}, Gates: []string{"SHARED"}, Model: "fable", Strong: "fable", ChangedDecision: "yes"},
-		{TS: "2026-09-21T01:05:00Z", Repo: "kit", Branch: "b2", Site: "architect", Features: map[string]string{"TIER": "architectural", "REPOS": "2"}, Gates: []string{"REPOS>=2"}, Model: "opus", Strong: "opus", ChangedDecision: "no"},
-		{TS: "2026-09-21T01:06:00Z", Repo: "kit", Branch: "b3", Site: "architect", Features: map[string]string{"TIER": "architectural"}, Model: "none", Strong: "fable"},
-		{TS: "2026-09-21T02:00:00Z", Repo: "kit", Branch: "b1", Site: "manual", Model: "fable", Strong: "fable", Trigger: "manual"},
-		{TS: "2026-09-21T02:01:00Z", Repo: "kit", Branch: "b1", Site: "manual", Model: "fable", Strong: "fable"},
+		{TS: "2026-09-21T01:00:00Z", Repo: "kit", Branch: "b1", Site: "architect", Features: map[string]string{"TIER": "architectural", "SHARED": "1"}, Gates: []string{"SHARED"}, Model: "fable"},
+		{TS: "2026-09-21T01:05:00Z", Repo: "kit", Branch: "b2", Site: "architect", Features: map[string]string{"TIER": "architectural", "REPOS": "2"}, Gates: []string{"REPOS>=2"}, Model: "opus"},
+		{TS: "2026-09-21T01:06:00Z", Repo: "kit", Branch: "b3", Site: "architect", Features: map[string]string{"TIER": "architectural"}, Model: "none"},
+		{TS: "2026-09-21T02:00:00Z", Repo: "kit", Branch: "b1", Site: "manual", Model: "fable", Trigger: "manual"},
+		{TS: "2026-09-21T02:01:00Z", Repo: "kit", Branch: "b1", Site: "manual", Model: "fable"},
 		{TS: "2026-09-21T03:00:00Z", Repo: "kit", Branch: "b1", Site: "plan-metrics", Tasks: 9, FilesPred: 12},
 	}
 	for _, r := range recs {
@@ -32,14 +32,8 @@ func TestWriteLoadSummarize(t *testing.T) {
 	if s.ModelBySite["architect"]["fable"] != 1 || s.ModelBySite["architect"]["none"] != 1 {
 		t.Fatalf("model by site: %+v", s.ModelBySite)
 	}
-	if s.StrongSent != 3 { // architect fable + 2 manual fable
-		t.Fatalf("strong sent = %d", s.StrongSent)
-	}
 	if s.GateFires["SHARED"] != 1 || s.GateFires["REPOS>=2"] != 1 {
 		t.Fatalf("gates: %+v", s.GateFires)
-	}
-	if s.ArchitectDecided != 2 || s.ArchitectChanged != 1 {
-		t.Fatalf("changed_decision: %d/%d", s.ArchitectChanged, s.ArchitectDecided)
 	}
 	if s.ManualNoTrigger != 1 {
 		t.Fatalf("manual without trigger = %d", s.ManualNoTrigger)
@@ -102,5 +96,14 @@ func TestSummarizeByRuntime(t *testing.T) {
 		if s.ByRuntime[k] != v {
 			t.Fatalf("ByRuntime = %v, want %v", s.ByRuntime, want)
 		}
+	}
+}
+
+func TestLoadRecords_IgnoresLegacyKeys(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "old.json"), `{"ts":"2026-09-21T01:00:00Z","site":"architect","strong":"fable","changed_decision":"yes"}`)
+	recs, err := LoadRecords(dir)
+	if err != nil || len(recs) != 1 || recs[0].Site != "architect" {
+		t.Fatalf("legacy keys must load: %v %+v", err, recs)
 	}
 }

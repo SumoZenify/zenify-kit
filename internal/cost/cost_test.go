@@ -281,3 +281,30 @@ func TestPercentile(t *testing.T) {
 		t.Fatalf("p50=%d p90=%d", percentile(s, 0.5), percentile(s, 0.9))
 	}
 }
+
+func TestScan_SkipsDanglingTranscript(t *testing.T) {
+	root := t.TempDir()
+	now := "2026-09-18T10:00:00.000Z"
+	write(t, filepath.Join(root, "good.jsonl"),
+		line(t, "assistant", now, map[string]any{"model": "claude-opus-4-8", "usage": usage(1, 1, 1, 1)}))
+	gone := filepath.Join(t.TempDir(), "gone.jsonl")
+	if err := os.Symlink(gone, filepath.Join(root, "dangling.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "good", "subagents"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(gone, filepath.Join(root, "good", "subagents", "agent-x.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	r, err := Scan(root, Options{})
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	if r.Sessions != 1 {
+		t.Fatalf("sessions = %v, want 1", r.Sessions)
+	}
+	if r.Skipped != 2 {
+		t.Fatalf("skipped = %d, want 2", r.Skipped)
+	}
+}

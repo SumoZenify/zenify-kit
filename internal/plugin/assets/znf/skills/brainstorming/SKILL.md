@@ -64,12 +64,12 @@ Classify, announce the path, do the items in order.
 3. **Offer the visual companion just-in-time** — NOT upfront; only the first time a question is clearer shown than described, never if none arises
 4. **Ask clarifying questions** — one at a time: purpose, constraints, success criteria
 5. **Research check** — `references/research-checklist.md`; one item true → `Skill(znf:research)` on the scoped question; none → skip, no prior-art for show
-6. **Route the design** — `references/architect-gate.md`: four features → `select-route architect`; `none` → write the memo yourself; a model → `Agent(architect)` once, then read its memo
-7. **Design memo** — `references/architect-memo.md`, ten sections (2-3 approaches, gates, tokens, checklist, recommendation). Think hard before responding.
-8. **Present design** — sections scaled to their complexity, user approval after each
-9. **Clarify-lite** — scan the 8 Brief fields (Clear/Partial/Missing), ≤5 MC questions, log `## Clarifications`
-10. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
-11. **Spec self-review** — inline check for placeholders, contradictions, ambiguity, scope (below)
+6. **Design memo** — inline: context, 2-3 approaches with a recommendation, Simplicity / Anti-Abstraction / Integration-First gates, polyrepo checklist, deliberately not done. Think hard before responding.
+7. **Present design** — sections scaled to their complexity, user approval after each
+8. **Clarify-lite** — scan the 8 Brief fields (Clear/Partial/Missing), ≤5 MC questions, log `## Clarifications`
+9. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+10. **Spec self-review** — inline check for placeholders, contradictions, ambiguity, scope (below)
+11. **Spec review** — `Agent(znf:spec-reviewer)` once, no `model`, brief = absolute paths of spec, user's request, report file; print `spec review ran on: <its model line>`; HIGH findings go in the approval ask; no report → `spec review: no report`; never blocks
 12. **User reviews written spec** — ask the user to review the spec file before proceeding
 13. **Transition to implementation** — invoke writing-plans to create the implementation plan
 
@@ -97,9 +97,7 @@ the spec — a light pass inside the dialogue, not a separate step.
 - Author the spec against `znf:_shared/spec-template` and follow `znf:_shared/constitution`
   (Brief-first, stable FR/SC IDs, testable SC, mark unknowns, necessity ladder, safety floor,
   traceability). Format and language rules stay in `znf:_shared/artifact-style`.
-- The memo is the source of the Brief's Approach, Blast-radius, Flow, Rollback and Non-goals;
-  link it from the spec header. Tier-3 route and `changed_decision` recorded per
-  `references/architect-gate.md`.
+- The design memo is the source of the Brief's Approach, Blast-radius, Flow, Rollback and Non-goals.
 
 **Spec Self-Review:** scan for placeholders, contradictions, over-broad scope, ambiguity; fix inline, no re-review (`references/spec-self-review.md`).
 
@@ -126,5 +124,3 @@ Read one when its trigger fires.
 - `references/visual-companion-rules.md` — read when deciding if a question belongs in the browser.
 - `references/spec-self-review.md` — read when the spec needs its fresh-eyes pass.
 - `references/research-checklist.md` — read at the Research check; one true item calls `znf:research`.
-- `references/architect-gate.md` — read at step 5 of the architectural path; the four features and the dispatch.
-- `references/architect-memo.md` — read at step 6; the ten memo sections, shared by tier 2 and tier 3.

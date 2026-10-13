@@ -6,7 +6,7 @@ title: zenify route-log
 
 # `zenify route-log`
 
-Xem log calibrate của cơ chế chọn model — mỗi lần `select-route` chạy ghi một record, lệnh này đếm theo site, model đã gửi, gate đã fire và tỉ lệ architect đổi quyết định.
+Xem các record routing model do skill ghi (số liệu plan từ znf:analyze), đếm theo site, model và gate.
 
 ## Cú pháp
 
@@ -16,11 +16,11 @@ zenify route-log [flags]
 
 ## Khi nào dùng
 
-Sau khoảng 30 record (vài tuần dùng cook/fix/review) để chỉnh ngưỡng gate bằng số: gate nào fire mà architect hầu như không đổi quyết định thì nới; skill `advisor` bị gọi không có cụm kích hoạt thì siết description.
+Sau khoảng 30 record (vài tuần dùng cook/fix/review) để xem số route theo site và gate nào đã fire.
 
 ## Kết quả
 
-Số route theo site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) kèm phân bố model, số lần model mạnh thực sự được gửi, số lần từng gate fire, tỉ lệ `changed_decision` của architect (cảnh báo dưới 40%), số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
+Số route theo site (từ v0.32.0 kit chỉ còn ghi `plan-metrics`; `architect`, `investigator`, `implementer`, `reviewer`, `manual` chỉ có trong record cũ) kèm phân bố model, số lần từng gate fire, số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
 
 ## Cờ
 
