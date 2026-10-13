@@ -123,6 +123,13 @@ func TestSecretPresenceCheck_ReadsWorkspaceSettings(t *testing.T) {
 	if err := os.WriteFile(settings, []byte(`{"env":{"MONGO_URL":"mongodb://x"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(ws, ".zenify"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	profiles := filepath.Join(ws, ".zenify", "db-read.json")
+	if err := os.WriteFile(profiles, []byte(`{"profiles":{"staging":{"mongo":{"uriEnv":"MONGO_URL","database":"app_staging"}}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	c := secretPresenceCheck(func(string) string { return "" }, func() string { return settings })
 	ok, detail := c.Run()
 	if !ok || !strings.Contains(detail, "MONGO_URL=present") {

@@ -17,31 +17,14 @@ import (
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/plugin"
 )
 
-// secretPresenceCheck reports which DB credential KEYS are resolvable (env or
-// the settings.local.json env block) — names and present/absent ONLY. Per
-// FR-041 it never places a credential VALUE into its output. ok = MONGO_URL
-// present (the one key db-read hard-requires); the rest are informational.
+// secretPresenceCheck reports the default db-read profile and whether all
+// configured credential keys are resolvable. It never prints credential values.
 func secretPresenceCheck(getenv func(string) string, settingsPath func() string) Check {
 	return Check{
 		Name: "secrets",
 		Run: func() (bool, string) {
 			path := settingsPath()
-			creds, _ := dbread.LoadCreds(getenv, path)
-			keys := []string{"MONGO_URL", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"}
-			var parts []string
-			for _, k := range keys {
-				state := "absent"
-				if creds[k] != "" {
-					state = "present"
-				}
-				parts = append(parts, k+"="+state) // key + state only; NEVER the value
-			}
-			detail := strings.Join(parts, " ")
-			if creds["MONGO_URL"] == "" && path == "" {
-				detail += " — no workspace: run `zenify up` (or cd into the workspace)"
-			}
-			ok := creds["MONGO_URL"] != ""
-			return ok, detail
+			return dbread.CheckProfile(getenv, path, "staging")
 		},
 	}
 }

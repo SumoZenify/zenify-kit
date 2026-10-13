@@ -6,11 +6,9 @@
 // cannot evaluate, and shelling to the same CLIs the bash tool used
 // guarantees byte-identical output for every other subcommand too.
 //
-// FR-041: credentials ($MONGO_URL, $MYSQL_PASSWORD) are read into memory
-// and passed to child processes ONLY (mongosh URI arg; MYSQL_PWD in the
-// child env). No code path in this package prints, logs, or echoes a
-// connection string or password. Error diagnostics use the hardcoded host
-// 103.209.34.57 only, never the URL.
+// FR-041: credentials are read into memory and passed to child processes only
+// through their environment. No code path in this package prints, logs, or
+// echoes a connection string or password.
 package dbread
 
 import (
@@ -19,6 +17,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -32,10 +31,12 @@ import (
 // only works if Run and the closure share the same Options.
 type Options struct {
 	Cmd, Arg     string
+	Profile      string
 	Stdout       io.Writer
 	Stderr       io.Writer
 	Env          func(string) string
 	SettingsPath string
+	ConfigPath   string
 	run          func(name string, args []string, extraEnv []string, stdin string) error
 }
 
@@ -46,61 +47,26 @@ func (o *Options) SetRun(run func(name string, args []string, extraEnv []string,
 	o.run = run
 }
 
-// LoadCreds resolves DB credentials: live env first, else the "env" block of
-// the workspace settings.local.json (same store as bash db_read). Returns a
-// map of the six keys that were found (MONGO_URL, MYSQL_HOST/PORT/USER/
-// PASSWORD/DATABASE). Values are NEVER logged. A missing/unreadable
-// settings file is not an error here — the caller decides whether the
-// resulting absence of MONGO_URL is fatal.
-func LoadCreds(getenv func(string) string, settingsPath string) (map[string]string, error) {
-	keys := []string{"MONGO_URL", "MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"}
-	out := map[string]string{}
-	for _, k := range keys {
-		if v := getenv(k); v != "" {
-			out[k] = v
-		}
-	}
-	if out["MONGO_URL"] != "" {
-		return out, nil
-	}
-	b, err := os.ReadFile(settingsPath) //nolint:gosec // G304 -- path is computed internally by this tool from its own config/workspace state, not externally-tainted input
-	if err != nil {
-		return out, nil // absent settings is not fatal here
-	}
-	var doc struct {
-		Env map[string]string `json:"env"`
-	}
-	if err := json.Unmarshal(b, &doc); err != nil {
-		return out, nil // malformed → treat as absent, same as bash python failing open
-	}
-	for _, k := range keys {
-		if out[k] == "" {
-			if v := doc.Env[k]; v != "" {
-				out[k] = v
-			}
-		}
-	}
-	return out, nil
-}
-
 // RefuseWrites reports true if stmt looks like a mutation and must be
 // rejected. Advisory guard (a determined expression can evade a denylist)
-// — the real rule is "writes go in a reviewed script". Ports bash
-// refuse_writes exactly: match case-insensitively against the same verb
-// list.
+// — the real boundary is a database account with read-only permissions.
+// Match case-insensitively against mutation verbs as an accident guard.
+var directCallPattern = regexp.MustCompile(`(?i)(^|;)\s*call\b`)
+
 func RefuseWrites(stmt string) bool {
 	s := strings.ToLower(stmt)
 	needles := []string{
 		"insert", "update", "delete", "remove", "replace", "drop", "create",
 		"rename", "save(", "bulkwrite", "findandmodify", "collmod", "truncate",
 		"alter", "grant", "revoke", "set ",
+		"$out", "$merge", "into outfile", "load data",
 	}
 	for _, n := range needles {
 		if strings.Contains(s, n) {
 			return true
 		}
 	}
-	return false
+	return directCallPattern.MatchString(stmt)
 }
 
 // filterLines keeps only the lines of out containing substr, case-insensitively.
@@ -119,57 +85,68 @@ func filterLines(out, substr string) string {
 	return strings.Join(keep, "\n")
 }
 
-const mongoHost = "103.209.34.57"
-
-// Run dispatches one db_read subcommand. It resolves creds, requires
-// MONGO_URL, then dispatches on o.Cmd. Output goes to o.Stdout via the
-// injected run seam — Run itself never returns secret values in an error
-// string.
+// Run dispatches one db-read subcommand through a workspace profile.
 func Run(o *Options) error {
 	if o.Env == nil {
 		o.Env = os.Getenv
 	}
-	creds, _ := LoadCreds(o.Env, o.SettingsPath)
-	mongoURL := creds["MONGO_URL"]
-	if mongoURL == "" {
-		if o.SettingsPath == "" {
-			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: chưa có workspace — chạy `zenify up` trước") //znf:allow-lang
-			return fmt.Errorf("zenify db-read: no workspace")
-		}
-		_, _ = fmt.Fprintf(o.Stderr, "zenify db-read: $MONGO_URL is not set and %s did not supply it.\n", o.SettingsPath)
-		_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: it belongs in the env block of that file, next to E2E_PASSWORD.")
-		return fmt.Errorf("zenify db-read: MONGO_URL not set")
+	if o.Profile == "" {
+		o.Profile = "staging"
+	}
+	if o.ConfigPath == "" {
+		o.ConfigPath = profileConfigPath(o.SettingsPath)
+	}
+	profile, err := loadProfile(o.ConfigPath, o.Profile)
+	if err != nil {
+		return err
+	}
+	settings := loadSettingsEnv(o.SettingsPath)
+	get := func(key string) string { return resolveEnv(o.Env, settings, key) }
+	credentialClears := credentialEnvClears(o.ConfigPath)
+	jsString := func(value string) string {
+		b, _ := json.Marshal(value)
+		return string(b)
+	}
+	printTarget := func(engine, database string) {
+		_, _ = fmt.Fprintf(o.Stderr, "zenify db-read: profile=%s engine=%s database=%s\n", o.Profile, engine, database)
 	}
 
 	mongoEval := func(js string) error {
-		err := o.run("mongosh", []string{mongoURL, "--quiet", "--eval", js}, nil, "")
+		if profile.Mongo == nil {
+			return fmt.Errorf("profile %q has no Mongo configuration", o.Profile)
+		}
+		uri := get(profile.Mongo.URIEnv)
+		if uri == "" {
+			return fmt.Errorf("profile %q: %s is not set", o.Profile, profile.Mongo.URIEnv)
+		}
+		printTarget("mongo", profile.Mongo.Database)
+		prefix := "db = (() => { const uri = process.env.ZENIFY_DB_READ_MONGO_URI; delete process.env.ZENIFY_DB_READ_MONGO_URI; return new Mongo(uri).getDB(" + jsString(profile.Mongo.Database) + "); })(); "
+		childEnv := append(append([]string(nil), credentialClears...), "ZENIFY_DB_READ_MONGO_URI="+uri)
+		err := o.run("mongosh", []string{"--nodb", "--norc", "--quiet", "--eval", prefix + js}, childEnv, "")
 		if err != nil {
-			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: mongosh failed. Separate network from credential before theorising:")
-			_, _ = fmt.Fprintf(o.Stderr, "zenify db-read:   nc -z %s 27017   # needs no credential\n", mongoHost)
-			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: port open  -> auth, or a stale $MONGO_URL in settings.local.json")
-			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: port shut  -> network. This host is reachable directly, no VPN.")
+			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: mongosh failed; check profile credentials and network access")
 		}
 		return err
 	}
 
 	mysqlRun := func(sql string) error {
-		host := creds["MYSQL_HOST"]
-		if host == "" {
-			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: $MYSQL_HOST is not set — same source as $MONGO_URL, see above.")
-			return fmt.Errorf("zenify db-read: MYSQL_HOST not set")
+		if profile.MySQL == nil {
+			return fmt.Errorf("profile %q has no MySQL configuration", o.Profile)
 		}
-		port := creds["MYSQL_PORT"]
+		mysql := profile.MySQL
+		host, user, password := get(mysql.HostEnv), get(mysql.UserEnv), get(mysql.PasswordEnv)
+		if host == "" || user == "" || password == "" {
+			return fmt.Errorf("profile %q: MySQL host, user or password is not set", o.Profile)
+		}
+		port := get(mysql.PortEnv)
 		if port == "" {
 			port = "3306"
 		}
-		database := creds["MYSQL_DATABASE"]
-		if database == "" {
-			database = "db_acd"
-		}
-		extraEnv := []string{"MYSQL_PWD=" + creds["MYSQL_PASSWORD"]}
+		printTarget("mysql", mysql.Database)
+		extraEnv := append(append([]string(nil), credentialClears...), "MYSQL_PWD="+password)
 		return o.run("mysql", []string{
-			"-h", host, "-P", port, "-u", creds["MYSQL_USER"],
-			"-N", "-B", "-e", sql, database,
+			"--no-defaults", "--protocol=TCP", "-h", host, "-P", port, "-u", user,
+			"-N", "-B", "-e", sql, mysql.Database,
 		}, extraEnv, "")
 	}
 
@@ -191,7 +168,7 @@ func Run(o *Options) error {
 	switch o.Cmd {
 	case "collections":
 		return runFiltered(func() error {
-			return mongoEval(`db.getSiblingDB("3csoft").getCollectionInfos({type:"collection"}).map(c=>c.name).sort().forEach(n=>print(n))`)
+			return mongoEval(`db.getCollectionInfos({type:"collection"}).map(c=>c.name).sort().forEach(n=>print(n))`)
 		})
 	case "tables":
 		return runFiltered(func() error {
@@ -202,13 +179,13 @@ func Run(o *Options) error {
 			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: doc needs a collection name — run 'zenify db-read collections' first")
 			return fmt.Errorf("zenify db-read: arg required")
 		}
-		return mongoEval(fmt.Sprintf("printjson(db.getSiblingDB('3csoft').getCollection('%s').findOne())", o.Arg))
+		return mongoEval("printjson(db.getCollection(" + jsString(o.Arg) + ").findOne())")
 	case "count":
 		if o.Arg == "" {
 			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: count needs a collection name")
 			return fmt.Errorf("zenify db-read: arg required")
 		}
-		return mongoEval(fmt.Sprintf("print(db.getSiblingDB('3csoft').getCollection('%s').estimatedDocumentCount())", o.Arg))
+		return mongoEval("print(db.getCollection(" + jsString(o.Arg) + ").estimatedDocumentCount())")
 	case "eval":
 		if o.Arg == "" {
 			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: eval needs a JS expression")
@@ -219,7 +196,7 @@ func Run(o *Options) error {
 			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: writes go in a script that connects and runs, never in a direct query.")
 			return fmt.Errorf("zenify db-read: refused write")
 		}
-		return mongoEval(fmt.Sprintf("db = db.getSiblingDB('3csoft'); %s", o.Arg))
+		return mongoEval(o.Arg)
 	case "sql":
 		if o.Arg == "" {
 			_, _ = fmt.Fprintln(o.Stderr, "zenify db-read: sql needs a query")
@@ -233,13 +210,13 @@ func Run(o *Options) error {
 		return mysqlRun(o.Arg)
 	default:
 		_, _ = fmt.Fprintln(o.Stderr, "Usage:")
-		_, _ = fmt.Fprintln(o.Stderr, "  db-read collections            list every Mongo collection in 3csoft")
+		_, _ = fmt.Fprintln(o.Stderr, "  db-read collections            list Mongo collections in the selected profile")
 		_, _ = fmt.Fprintln(o.Stderr, "  db-read collections <substr>   only names containing <substr>")
-		_, _ = fmt.Fprintln(o.Stderr, "  db-read tables                 list every MySQL table in db_acd")
+		_, _ = fmt.Fprintln(o.Stderr, "  db-read tables                 list MySQL tables in the selected profile")
 		_, _ = fmt.Fprintln(o.Stderr, "  db-read tables <substr>        only names containing <substr>")
 		_, _ = fmt.Fprintln(o.Stderr, "  db-read doc <collection>       findOne() from that collection")
 		_, _ = fmt.Fprintln(o.Stderr, "  db-read count <collection>     estimated document count")
-		_, _ = fmt.Fprintln(o.Stderr, "  db-read eval '<js>'            read-only mongosh expression, with `db` already = 3csoft")
+		_, _ = fmt.Fprintln(o.Stderr, "  db-read eval '<js>'            mongosh expression on the selected database")
 		_, _ = fmt.Fprintln(o.Stderr, "  db-read sql '<query>'          read-only MySQL query")
 		return fmt.Errorf("zenify db-read: unknown subcommand %q", o.Cmd)
 	}

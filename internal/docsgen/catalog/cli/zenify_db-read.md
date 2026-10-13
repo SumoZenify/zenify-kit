@@ -18,18 +18,42 @@ Sáu lệnh con:
 | `eval '<biểu thức>'` | Chạy một biểu thức mongosh chỉ đọc |
 | `sql '<câu lệnh>'` | Chạy một câu SQL chỉ đọc |
 
-Kết nối lấy từ biến môi trường `MONGO_URL` và các biến `MYSQL_*` trong khối `env` của file `.claude/settings.local.json` ở workspace. Lệnh không nhận chuỗi kết nối qua tham số và không in ra màn hình.
+Lệnh chọn profile bằng `--profile`. Profile mặc định là `staging`; các profile khuyến nghị là `local`, `develop`, `custom` và `production`. Profile không tồn tại hoặc thiếu credential sẽ dừng, không tự chuyển sang `staging`.
 
-`eval` và `sql` từ chối mọi động từ ghi. Khi gặp, lệnh báo "refused write" và dừng.
+Metadata profile nằm trong `.zenify/db-read.json` của workspace. File này chỉ chứa tên biến môi trường và tên database; credential tương ứng nằm trong khối `env` của `.claude/settings.local.json` hoặc trong environment của process.
+
+```json
+{
+  "profiles": {
+    "staging": {
+      "mongo": { "uriEnv": "MONGO_URL", "database": "app_staging" },
+      "mysql": {
+        "hostEnv": "MYSQL_HOST",
+        "portEnv": "MYSQL_PORT",
+        "userEnv": "MYSQL_USER",
+        "passwordEnv": "MYSQL_PASSWORD",
+        "database": "acd_staging"
+      }
+    },
+    "production": {
+      "mongo": { "uriEnv": "MONGO_URL_PRODUCTION", "database": "app_production" }
+    }
+  }
+}
+```
+
+`eval` và `sql` chặn các động từ ghi phổ biến để tránh thao tác nhầm. Đây là guard bổ sung; mọi profile, đặc biệt `production`, phải dùng tài khoản DB chỉ có quyền đọc.
 
 ## Ví dụ
 
 ```bash
 zenify db-read collections chatbot
+zenify db-read --profile develop collections chatbot
+zenify db-read --profile production doc chat_rooms
 zenify db-read doc chat_rooms
 zenify db-read sql 'DESCRIBE agents'
 ```
 
 ## Lưu ý
 
-Chỉ chạy được trong phiên mở tại workspace, vì biến môi trường đến từ settings của workspace. Khi kết nối lỗi, lệnh gợi ý cách tách lỗi mạng khỏi lỗi xác thực.
+Mỗi lần chạy, lệnh in profile, DB engine và tên database đã chọn nhưng không in host hoặc credential. `production` chỉ được chọn bằng `--profile production`; Git branch không tự đổi profile.

@@ -2,9 +2,25 @@ package cli
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func doctorSettingsPath(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	settings := filepath.Join(root, ".claude", "settings.local.json")
+	config := filepath.Join(root, ".zenify", "db-read.json")
+	if err := os.MkdirAll(filepath.Dir(config), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, []byte(`{"profiles":{"staging":{"mongo":{"uriEnv":"MONGO_URL","database":"app_staging"}}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return settings
+}
 
 func TestSecretPresenceNamesOnlyNeverLeaksValue(t *testing.T) {
 	getenv := func(k string) string {
@@ -13,7 +29,8 @@ func TestSecretPresenceNamesOnlyNeverLeaksValue(t *testing.T) {
 		}
 		return ""
 	}
-	c := secretPresenceCheck(getenv, func() string { return "/nonexistent/settings.local.json" })
+	settings := doctorSettingsPath(t)
+	c := secretPresenceCheck(getenv, func() string { return settings })
 	ok, detail := c.Run()
 	if strings.Contains(detail, "secretpass") || strings.Contains(detail, "10.0.0.1") || strings.Contains(detail, "mongodb://") {
 		t.Fatalf("FR-041 VIOLATION: secret value leaked into detail: %q", detail)
@@ -25,7 +42,8 @@ func TestSecretPresenceNamesOnlyNeverLeaksValue(t *testing.T) {
 }
 
 func TestSecretPresenceReportsAbsent(t *testing.T) {
-	c := secretPresenceCheck(func(string) string { return "" }, func() string { return "/nonexistent/settings.local.json" })
+	settings := doctorSettingsPath(t)
+	c := secretPresenceCheck(func(string) string { return "" }, func() string { return settings })
 	ok, detail := c.Run()
 	if ok {
 		t.Fatal("no MONGO_URL anywhere → check should be not-ok")
@@ -35,22 +53,21 @@ func TestSecretPresenceReportsAbsent(t *testing.T) {
 	}
 }
 
-// F3: an exported MONGO_URL must count even when no workspace resolves
-// (settingsPath returns "") — LoadCreds reads env first regardless of path.
-func TestSecretPresenceCheck_EnvMongoUrlCountsWithNoWorkspace(t *testing.T) {
+func TestSecretPresenceCheck_EnvMongoUrlCountsForProfile(t *testing.T) {
 	getenv := func(k string) string {
 		if k == "MONGO_URL" {
 			return "mongodb://x"
 		}
 		return ""
 	}
-	c := secretPresenceCheck(getenv, func() string { return "" })
+	settings := doctorSettingsPath(t)
+	c := secretPresenceCheck(getenv, func() string { return settings })
 	ok, detail := c.Run()
 	if !ok {
 		t.Fatalf("MONGO_URL is set in env, ok should be true; detail=%q", detail)
 	}
-	if strings.Contains(detail, "no workspace") {
-		t.Fatalf("MONGO_URL present should not append the no-workspace hint: %q", detail)
+	if !strings.Contains(detail, "profile=staging") {
+		t.Fatalf("detail should identify the checked profile: %q", detail)
 	}
 }
 

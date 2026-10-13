@@ -39,7 +39,7 @@ zenify doctor --fix
 
 ## Lưu ý
 
-Secret được đọc từ block `env` của `.claude/settings.local.json` ở workspace, nên phải mở session từ trong workspace. Xem [Bắt đầu nhanh](/getting-started/quickstart) để biết từng mục nghĩa gì.
+Check `secrets` đọc profile `staging` từ `.zenify/db-read.json`, rồi chỉ báo trạng thái present/absent của các key tương ứng trong block `env` của `.claude/settings.local.json` hoặc process environment. Giá trị credential không được in. Xem [Bắt đầu nhanh](/getting-started/quickstart) để biết từng mục nghĩa gì.
 
 ## Lệnh liên quan
 

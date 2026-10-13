@@ -13,7 +13,7 @@ Dùng lệnh này trước khi viết code chạm một collection, bảng hoặ
 ## Lệnh
 
 ```bash
-zenify db-read <collections|tables|doc|count|eval|sql> [arg]
+zenify db-read [--profile <name>] <collections|tables|doc|count|eval|sql> [arg]
 ```
 
 | Lệnh con | Kết quả |
@@ -27,28 +27,52 @@ zenify db-read <collections|tables|doc|count|eval|sql> [arg]
 
 ```bash
 zenify db-read collections chatbot
+zenify db-read --profile develop collections chatbot
+zenify db-read --profile production doc chat_rooms
 zenify db-read doc chat_rooms
 zenify db-read sql 'DESCRIBE agents'
 ```
 
 ## Kết quả
 
-Kết nối lấy từ biến môi trường `MONGO_URL` và các biến `MYSQL_*` trong khối `env` của file `.claude/settings.local.json` ở workspace. Lệnh không nhận chuỗi kết nối qua tham số dòng lệnh và không in ra màn hình, nên chạy `zenify db-read` không bao giờ làm lộ credential.
+Profile mặc định là `staging`. Có thể chọn `local`, `develop`, `custom` hoặc `production` bằng `--profile`; profile thiếu cấu hình sẽ dừng và không tự fallback. Git branch không tự đổi profile.
 
-`eval` và `sql` từ chối mọi động từ ghi. Khi gặp một câu lệnh ghi, lệnh báo "refused write" và dừng, không thực thi.
+Metadata profile nằm trong `.zenify/db-read.json` ở workspace và chỉ chứa tên biến môi trường cùng tên database. Credential thật nằm trong khối `env` của `.claude/settings.local.json` hoặc environment của process. Mỗi lần chạy, lệnh in profile, engine và database đã chọn nhưng không in host hoặc credential.
+
+`eval` và `sql` chặn các động từ ghi phổ biến để tránh thao tác nhầm. Mỗi profile phải dùng tài khoản chỉ có quyền đọc; điều này bắt buộc với `production`.
+
+```json
+{
+  "profiles": {
+    "staging": {
+      "mongo": { "uriEnv": "MONGO_URL", "database": "app_staging" },
+      "mysql": {
+        "hostEnv": "MYSQL_HOST",
+        "portEnv": "MYSQL_PORT",
+        "userEnv": "MYSQL_USER",
+        "passwordEnv": "MYSQL_PASSWORD",
+        "database": "acd_staging"
+      }
+    },
+    "production": {
+      "mongo": { "uriEnv": "MONGO_URL_PRODUCTION", "database": "app_production" }
+    }
+  }
+}
+```
 
 ## Lưu ý
 
-- Lệnh chỉ chạy được trong phiên mở tại workspace, vì biến môi trường đến từ settings của workspace, không phải từ `.env` riêng của một repo.
+- Lệnh chỉ chạy được trong workspace có `.zenify/db-read.json`.
 - Tên collection trong database luôn ở số nhiều. Tên số ít bạn thấy trong code là tên model, không phải tên collection thật. Luôn liệt kê bằng `zenify db-read collections` trước khi dùng một tên, đừng lấy tên từ tài liệu hay từ một document mẫu.
-- Khi kết nối lỗi, lệnh gợi ý cách tách lỗi mạng khỏi lỗi xác thực thay vì chỉ báo timeout.
+- Khi kết nối lỗi, lệnh yêu cầu kiểm tra credential của profile và quyền truy cập mạng.
 - `/znf:ground` dùng lệnh này để xác minh field trước khi code chạm vào nó. `/znf:ship` cũng đọc dữ liệu thật qua đường này khi verify một thay đổi chạm DB.
 
 ## Secret và settings.local.json
 
 Secret dùng để đọc dữ liệu thật, ví dụ chuỗi kết nối DB hay tài khoản đăng nhập test, sống trong khối `env` của file `.claude/settings.local.json` ở workspace. File này không được commit.
 
-Các tool như `zenify db-read` đọc secret từ biến môi trường tại thời điểm chạy, chứ không nhận qua tham số dòng lệnh. Nhờ vậy không credential nào lọt vào lịch sử lệnh, log, hay màn hình. `zenify db-read` từ chối in ra chuỗi kết nối và từ chối mọi câu lệnh mang tính ghi ngay từ thiết kế, không phải nhờ quyền hạn tài khoản bị giới hạn.
+`zenify db-read` đọc secret từ biến môi trường tại thời điểm chạy và không nhận credential qua tham số của chính lệnh `zenify`. URI Mongo được chuyển cho process con qua environment thay vì argv. Không dựa vào bộ lọc câu lệnh làm ranh giới bảo mật; tài khoản DB của profile phải được giới hạn quyền đọc tại server.
 
 Cùng nguyên tắc đó áp dụng khi bạn tự viết script hay agent chạm secret: không bao giờ ghi một mật khẩu ở dạng chữ thẳng vào file, kể cả file tạm.
 
