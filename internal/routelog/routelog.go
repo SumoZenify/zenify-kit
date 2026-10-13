@@ -25,7 +25,7 @@ type Record struct {
 	TS             string            `json:"ts"`
 	Repo           string            `json:"repo"`
 	Branch         string            `json:"branch"`
-	Site           string            `json:"site"` // architect|investigator|implementer|reviewer|manual|plan-metrics
+	Site           string            `json:"site"` // plan-metrics; older records also carry architect|investigator|implementer|reviewer|manual
 	Features       map[string]string `json:"features"`
 	Gates          []string          `json:"gates"`
 	Model          string            `json:"model"`   // the model actually sent (none = no dispatch)

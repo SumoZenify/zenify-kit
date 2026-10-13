@@ -20,7 +20,7 @@ Sau khoảng 30 record (vài tuần dùng cook/fix/review) để xem số route 
 
 ## Kết quả
 
-Số route theo site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) kèm phân bố model, số lần từng gate fire, số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
+Số route theo site (từ v0.32.0 kit chỉ còn ghi `plan-metrics`; `architect`, `investigator`, `implementer`, `reviewer`, `manual` chỉ có trong record cũ) kèm phân bố model, số lần từng gate fire, số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
 
 ## Cờ
 

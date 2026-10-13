@@ -34,7 +34,7 @@ Model mạnh điều phối, model rẻ làm phần song song — một agent t�
 
 Agent `spec-reviewer` được brainstorming dispatch **một lần**, ở tier architectural, sau bước tự soát spec và trước khi bạn duyệt. Nó đọc spec trong context mới, đối chiếu với yêu cầu gốc của bạn, và chỉ báo: requirement thiếu hoặc mâu thuẫn, FR/SC không kiểm được, mâu thuẫn nội bộ, tên hoặc hợp đồng không có nguồn ground. Finding mức HIGH được đưa vào lời xin duyệt spec. Xem [agent `spec-reviewer`](/reference/agents/spec-reviewer).
 
-Frontmatter ghim `model: fable`. Máy không có Fable **tự hạ về model của phiên**, không lỗi. Agent in dòng đầu `model: <tên model nó đang chạy>` và brainstorming in lại `spec review ran on: …`, nên bạn luôn thấy spec được soát bằng model nào.
+Frontmatter ghim `model: fable`. Theo docs Claude Code, khi tổ chức chặn model qua allowlist `availableModels`, subagent chạy trên model kế thừa và phiên tương tác hiện một cảnh báo nêu cả hai tên model. Docs chưa nói gì về trường hợp gói tài khoản không có Fable, và kit chưa đo trường hợp đó. Spec review không chặn: không có báo cáo thì brainstorming in `spec review: no report` rồi đi tiếp. Agent in dòng đầu `model: <tên model nó đang chạy>` và brainstorming in lại `spec review ran on: …`, nên bạn luôn thấy spec được soát bằng model nào.
 
 ## Advisor native
 
