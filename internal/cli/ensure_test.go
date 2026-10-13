@@ -100,6 +100,40 @@ func TestEnsureWorkspace_WritesOnceThenSilent(t *testing.T) {
 	}
 }
 
+// FR-4.2 / SC-6: the stale ZNF_STRONG_MODEL key is removed at any value, the
+// removal is announced once, and a second run is silent.
+func TestEnsureWorkspace_RemovesStrongModelKey(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	stampManifest(t, home, version.Current())
+	storeFixture(t)
+	ws := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sp := filepath.Join(home, ".claude", "settings.json")
+	if err := os.WriteFile(sp, []byte(`{"env":{"ZNF_STRONG_MODEL":"fable"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var o1, e1 bytes.Buffer
+	ensureWorkspace(ws, home, &o1, &e1)
+	want := "removed ZNF_STRONG_MODEL from ~/.claude/settings.json (select-route is gone)"
+	if !strings.Contains(o1.String(), want) {
+		t.Fatalf("stdout missing %q: %s", want, o1.String())
+	}
+	raw, _ := os.ReadFile(sp)
+	if strings.Contains(string(raw), "ZNF_STRONG_MODEL") {
+		t.Fatalf("key still present: %s", raw)
+	}
+
+	var o2, e2 bytes.Buffer
+	ensureWorkspace(ws, home, &o2, &e2)
+	if strings.Contains(o2.String(), "ZNF_STRONG_MODEL") {
+		t.Fatalf("second run must not mention the key: %s", o2.String())
+	}
+}
+
 // SC-7 / FR-01.2: the LAST step (config) failing must not have corrupted or
 // blocked the earlier writes (hooks, model) that already happened, and must
 // leave one 'znf ensure:' line on stderr.

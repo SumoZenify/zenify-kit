@@ -16,7 +16,7 @@ const ReviewerEnv = "ZNF_REVIEWER"
 const ReviewerDefault = "agent"
 
 // EnsureReviewerEnv sets env.ZNF_REVIEWER in <home>/.claude/settings.json
-// only when the key is absent (same contract as EnsureStrongModelEnv).
+// only when the key is absent (same contract as EnsureSubagentModelEnv).
 func EnsureReviewerEnv(home string, dryRun bool) (bool, error) {
 	path := filepath.Join(home, ".claude", "settings.json")
 	root, mode, err := readSettingsRoot(path)

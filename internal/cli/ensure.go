@@ -99,11 +99,10 @@ func ensureWorkspace(workspace, home string, stdout, stderr io.Writer) (rep ensu
 			apply.SubagentModelEnv, apply.SubagentModelDefault)
 	}
 
-	if changed, err := apply.EnsureStrongModelEnv(home, false); err != nil {
+	if changed, err := apply.RemoveStrongModelEnv(home, false); err != nil {
 		fmt.Fprintln(stderr, "znf ensure: strong model:", err)
 	} else if changed {
-		fmt.Fprintf(stdout, "set %s=%s in ~/.claude/settings.json (select-route routes strong-model dispatches there)\n",
-			apply.StrongModelEnv, apply.StrongModelDefault)
+		fmt.Fprintf(stdout, "removed %s from ~/.claude/settings.json (select-route is gone)\n", apply.StrongModelEnv)
 	}
 
 	if changed, err := apply.EnsureReviewerEnv(home, false); err != nil {
