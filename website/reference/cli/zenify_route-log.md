@@ -6,7 +6,7 @@ title: zenify route-log
 
 # `zenify route-log`
 
-Show model-routing records written by skills (plan metrics from znf:analyze), counted by site, model and gate.
+Xem các record routing model do skill ghi (số liệu plan từ znf:analyze), đếm theo site, model và gate.
 
 ## Cú pháp
 
@@ -14,33 +14,26 @@ Show model-routing records written by skills (plan metrics from znf:analyze), co
 zenify route-log [flags]
 ```
 
-## When to use
+## Khi nào dùng
 
-After a few weeks of cook/fix/review use, to see how many routing records were written, by which site and model, and which gates fired.
+Sau khoảng 30 record (vài tuần dùng cook/fix/review) để xem số route theo site và gate nào đã fire.
 
-## Output
+## Kết quả
 
-Route count per site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) with the model distribution, how many times each gate fired, and how many `manual` records carry no trigger. Data lives in `.znf/route-log` of the main checkout. With no records it prints "no routes logged yet".
-
-## Flags
-
-| Flag | Meaning |
-|---|---|
-| `--json` | Print every record as JSON. |
-| `--since` | Keep records from `<n>h`, `<n>d`, `<n>w` or `YYYY-MM-DD` onward. |
-
-## Example
-
-```bash
-zenify route-log --since 30d
-```
+Số route theo site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) kèm phân bố model, số lần từng gate fire, số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
 
 ## Cờ
 
 | Cờ | Ý nghĩa |
 |---|---|
-| `--json` | in toàn bộ record JSON |
-| `--since` | chỉ lấy record từ mốc: \<n\>h\|\<n\>d\|\<n\>w hoặc YYYY-MM-DD |
+| `--json` | In toàn bộ record dạng JSON. |
+| `--since` | Chỉ lấy record từ mốc `<n>h`, `<n>d`, `<n>w` hoặc `YYYY-MM-DD`. |
+
+## Ví dụ
+
+```bash
+zenify route-log --since 30d
+```
 
 ## Lệnh liên quan
 
