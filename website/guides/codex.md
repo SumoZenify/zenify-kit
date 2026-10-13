@@ -22,7 +22,7 @@ Codex bỏ qua hook chưa được trust mà không báo lỗi. Sau khi `zenify 
 
 ## Gọi skill trên Codex
 
-Gọi skill bằng `$znf:` cộng tên skill, ví dụ `$znf:fix` hoặc `$znf:ship`. Đối số là phần chữ đứng sau tên skill trong cùng tin nhắn; Codex không có `$ARGUMENTS`, nên các skill của kit không còn dùng placeholder đó. Subagent được tạo bằng tool subagent của Codex với cùng tên agent như trên Claude: `scout`, `code-reviewer`, `ui-verifier`, `researcher`, `architect`.
+Gọi skill bằng `$znf:` cộng tên skill, ví dụ `$znf:fix` hoặc `$znf:ship`. Đối số là phần chữ đứng sau tên skill trong cùng tin nhắn; Codex không có `$ARGUMENTS`, nên các skill của kit không còn dùng placeholder đó. Subagent được tạo bằng tool subagent của Codex với cùng tên agent như trên Claude: `scout`, `code-reviewer`, `ui-verifier`, `researcher`, `spec-reviewer`.
 
 ## Dùng Codex làm reviewer
 
