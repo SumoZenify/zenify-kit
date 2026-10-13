@@ -36,3 +36,19 @@ func TestRulesLint_CleanExitsOK(t *testing.T) {
 		t.Fatalf("want OK/nil, got %v", err)
 	}
 }
+
+func TestRulesLint_AllowsStrongModelName(t *testing.T) {
+	d := t.TempDir()
+	os.WriteFile(filepath.Join(d, "agent.md"), []byte("---\nname: a\nmodel: fable\n---\nbody\n"), 0o644)
+	cmd := newRulesCmd()
+	var out, errb bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&errb)
+	cmd.SetArgs([]string{"lint", d, "--include-go"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("want OK, got %v (%s%s)", err, out.String(), errb.String())
+	}
+	if strings.Contains(out.String()+errb.String(), "strong-model literal") {
+		t.Fatalf("strong-model lint still active: %q", out.String()+errb.String())
+	}
+}
