@@ -29,7 +29,7 @@ SDD requires the model to be explicit, and an omitted `effort` inherits the sess
 ### From § Then SDD
 
 **Defer to SDD's Model Selection — do not re-derive or floor it here.** SDD already routes the
-implementer: every implementer routes to `sonnet` (`select-route implementer FAIL=<n>`); the same
+implementer: each implementer runs on the plan's `**Model:**` line, default sonnet; the same
 test failing twice (`FAIL=2`) goes to `opus`, a third time to the investigator. The plan records decisions,
 not code, so no task is a transcription task and no implementer lane uses `haiku`.
 
@@ -180,7 +180,7 @@ it is generated fresh by the gate on every run.
 
 ### From § Floor and ceiling / Naming is asymmetric
 
-The floor is **whatever tier SDD's Model Selection lands on** (`sonnet` for every implementer) — not a fixed model pinned here. The
+The floor is **whatever tier SDD's Model Selection lands on** (the plan's `**Model:**` line, default sonnet) — not a fixed model pinned here. The
 ceiling is the session model (`opus-5-5[1m]`), for architecture, for a task needing broad codebase
 understanding, and for the final whole-branch review. Full-ID pinning is the **session's** job
 (`~/.claude/settings.json`); a subagent dispatch names a *tier* the dispatcher judged, so this file
@@ -218,7 +218,7 @@ token price"*, and the cheapest tier takes 2-3× the turns while reviewing worse
 | 6 Workspace handoff | a new session in the task's pane | session (`settings.json`) | session default |
 | 6 Task review | subagents via SDD | `sonnet`, `opus` for a high-risk diff (SDD's rule) | default |
 
-Implementers follow SDD's Model Selection: `sonnet`, named explicitly on every
+Implementers follow SDD's Model Selection: the plan's `**Model:**` line, default sonnet, named explicitly on every
 dispatch; `FAIL=2` escalates to `opus`. Nothing is hard-pinned at this step. Never pair `haiku` with
 `effort: 'xhigh'`: haiku is not xhigh-capable and the CLI silently downgrades it, so `xhigh` goes
 to `sonnet` and above only.

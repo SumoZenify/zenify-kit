@@ -160,11 +160,11 @@ func TestReviewSkill_M4eWiring(t *testing.T) {
 	}
 }
 
-func TestReviewSkill_BlockedStreakRoutesReviewer(t *testing.T) {
+func TestReviewSkill_T3PassesNoReviewModel(t *testing.T) {
 	s := syncedAsset(t, "skills/review/SKILL.md")
-	assertContainsAll(t, "review/SKILL.md", s, []string{
-		"BLOCKED_STREAK", "select-route reviewer", "reviewModel", "review-log --json",
-	})
+	if strings.Contains(s, "select-route") {
+		t.Error("review/SKILL.md must not call select-route")
+	}
 	pg := syncedAsset(t, "skills/review/references/post-gates.md")
 	assertContainsAll(t, "post-gates.md", pg, []string{"--arg branch", "branch:$branch"})
 	wf := syncedAsset(t, "workflows/review-changes.js")

@@ -89,19 +89,9 @@ reviewer's brief** (T1, 5×T2, per-bundle) and pass `args.doctrine="$DOCTRINE"` 
   model `sonnet` under 50 LOC / mid otherwise. Returns `findings[]`.
 - **T2 (fan-out):** 5 agents in parallel (ONE message), one dimension each (bugs / security / perf /
   contracts / types), each returning `findings[]`. **When `SHARED=1`, dispatch the `contracts` agent with model opus** (others stay default). Merge, dedup by `title+file`. No Workflow here.
-**T3 reviewer model — mechanical, from the streak:**
-```bash
-STREAK=$(zenify review-log --json 2>/dev/null | jq -r --arg r "$(basename "$(git rev-parse --show-toplevel)")" --arg b "$(git branch --show-current)" \
-  '[.[]|select(.repo==$r and .branch==$b)]|sort_by(.ts)|reverse|map(.shippable)|(index(true) // length)' 2>/dev/null); [ -n "$STREAK" ] || STREAK=0
-ROUTE=$(bash ~/.claude/skills/znf/skills/_shared/scripts/select-route reviewer TIER="$TIER" BLOCKED_STREAK="$STREAK" 2>/dev/null)
-RMODEL=$(printf '%s\n' "$ROUTE" | sed -n '1s/^model=//p'); [ -n "$RMODEL" ] || RMODEL=inherit
-```
-`RMODEL`≠`inherit` → `reviewModel:"$RMODEL"` in Workflow `args`, print route reason; then
-`zenify route-log record` per `references/post-gates.md` § Route capture. `inherit` → nothing.
-
 - **T3 (adversarial):** check first — `test -f "$HOME/.claude/skills/znf/workflows/review-changes.js" && echo present || echo missing`
   - **present** → run Workflow `scriptPath: ~/.claude/skills/znf/workflows/review-changes.js`,
-    `args: {diff: <BASE..HEAD>, context: <ship-pack intent if any>, doctrine: <DOCTRINE>, reviewModel: <RMODEL or omitted>}`.
+    `args: {diff: <BASE..HEAD>, context: <ship-pack intent if any>, doctrine: <DOCTRINE>}`.
     Verifies **CRITICAL/HIGH only**; merge its `advisory[]` below confirmed findings (`references/lifecycle-and-t3.md`).
   - **missing** → **degrade to T2**, note "T3 degrade→T2: workflow missing". Never fail silently.
 

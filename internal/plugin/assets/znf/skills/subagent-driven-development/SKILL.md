@@ -24,7 +24,7 @@ Work in an isolated workspace (`wt new`, znf:discipline §8), or verify the exis
 
 ## Model Selection
 
-Least powerful model per role — name it always. **Implementer:** model = line 1 of `bash …/select-route implementer FAIL=<n>` (`FAIL` = times this test failed; `FAIL=3` → stop, run investigator `ROUND=3`). Reviewers: standard for judgment, cheap for re-reviews (`references/model-selection.md`).
+Least powerful model per role — name it always. **Implementer:** the task's `**Model:**` line (none → sonnet); same test failing `FAIL=2` → opus, `FAIL=3` → stop, `/fix` round 3. Reviewers: standard for judgment, cheap for re-reviews (`references/model-selection.md`).
 
 ## The Task Loop
 

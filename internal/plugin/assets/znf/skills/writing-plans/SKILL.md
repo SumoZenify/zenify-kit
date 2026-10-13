@@ -79,6 +79,8 @@ argues from the spec, so the spec travels with it; executors read both]
 ````markdown
 ### Task N: [Component Name]
 
+**Model:** sonnet — `opus` for a task that needs design judgment
+
 **Files:**
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
