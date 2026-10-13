@@ -6,7 +6,7 @@ title: zenify route-log
 
 # `zenify route-log`
 
-Xem log calibrate của cơ chế chọn model — mỗi lần `select-route` chạy ghi một record, lệnh này đếm theo site, model đã gửi, gate đã fire và tỉ lệ architect đổi quyết định.
+Show model-routing records written by skills (plan metrics from znf:analyze), counted by site, model and gate.
 
 ## Cú pháp
 
@@ -14,26 +14,33 @@ Xem log calibrate của cơ chế chọn model — mỗi lần `select-route` ch
 zenify route-log [flags]
 ```
 
-## Khi nào dùng
+## When to use
 
-Sau khoảng 30 record (vài tuần dùng cook/fix/review) để chỉnh ngưỡng gate bằng số: gate nào fire mà architect hầu như không đổi quyết định thì nới; skill `advisor` bị gọi không có cụm kích hoạt thì siết description.
+After a few weeks of cook/fix/review use, to see how many routing records were written, by which site and model, and which gates fired.
 
-## Kết quả
+## Output
 
-Số route theo site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) kèm phân bố model, số lần model mạnh thực sự được gửi, số lần từng gate fire, tỉ lệ `changed_decision` của architect (cảnh báo dưới 40%), số lần `manual` không có trigger. Dữ liệu ở `.znf/route-log` của checkout chính. Chưa có record thì in "no routes logged yet".
+Route count per site (`architect`, `investigator`, `implementer`, `reviewer`, `manual`, `plan-metrics`) with the model distribution, how many times each gate fired, and how many `manual` records carry no trigger. Data lives in `.znf/route-log` of the main checkout. With no records it prints "no routes logged yet".
+
+## Flags
+
+| Flag | Meaning |
+|---|---|
+| `--json` | Print every record as JSON. |
+| `--since` | Keep records from `<n>h`, `<n>d`, `<n>w` or `YYYY-MM-DD` onward. |
+
+## Example
+
+```bash
+zenify route-log --since 30d
+```
 
 ## Cờ
 
 | Cờ | Ý nghĩa |
 |---|---|
-| `--json` | In toàn bộ record dạng JSON. |
-| `--since` | Chỉ lấy record từ mốc `<n>h`, `<n>d`, `<n>w` hoặc `YYYY-MM-DD`. |
-
-## Ví dụ
-
-```bash
-zenify route-log --since 30d
-```
+| `--json` | in toàn bộ record JSON |
+| `--since` | chỉ lấy record từ mốc: \<n\>h\|\<n\>d\|\<n\>w hoặc YYYY-MM-DD |
 
 ## Lệnh liên quan
 

@@ -1,8 +1,8 @@
-// Package routelog is the calibration store for select-route: one JSON file per
-// routing decision, written best-effort at the main checkout (.znf/route-log),
+// Package routelog is the store for routing records: one JSON file per
+// record, written best-effort at the main checkout (.znf/route-log),
 // read back by `zenify route-log`. Same shape of store as internal/review's
 // review-log; kept separate because the records answer a different question
-// (was the strong model worth dispatching?) and are pruned on a different cadence.
+// (plan metrics and manual advisor calls) and are pruned on a different cadence.
 package routelog
 
 import (
@@ -20,37 +20,32 @@ import (
 	"time"
 )
 
-// Record is one select-route decision plus what the caller learned afterwards.
+// Record is one routing record plus what the caller learned afterwards.
 type Record struct {
-	TS              string            `json:"ts"`
-	Repo            string            `json:"repo"`
-	Branch          string            `json:"branch"`
-	Site            string            `json:"site"` // architect|investigator|implementer|reviewer|manual|plan-metrics
-	Features        map[string]string `json:"features"`
-	Gates           []string          `json:"gates"`
-	Model           string            `json:"model"`            // the model actually sent (none = no dispatch)
-	Strong          string            `json:"strong"`           // ZNF_STRONG_MODEL resolved at the time
-	ChangedDecision string            `json:"changed_decision"` // yes|no|"" (architect only)
-	Trigger         string            `json:"trigger"`          // manual|<phrase>|"" (manual site)
-	Outcome         string            `json:"outcome"`          // ""|dispatch_error
-	FilesPred       int               `json:"files_pred"`
-	Tasks           int               `json:"tasks"`
-	Fanin           int               `json:"fanin"`
-	ThinkingTokens  int               `json:"thinking_tokens"`
-	Runtime         string            `json:"runtime,omitempty"` // codex|claude|unknown, set by the CLI from env
+	TS             string            `json:"ts"`
+	Repo           string            `json:"repo"`
+	Branch         string            `json:"branch"`
+	Site           string            `json:"site"` // architect|investigator|implementer|reviewer|manual|plan-metrics
+	Features       map[string]string `json:"features"`
+	Gates          []string          `json:"gates"`
+	Model          string            `json:"model"`   // the model actually sent (none = no dispatch)
+	Trigger        string            `json:"trigger"` // manual|<phrase>|"" (manual site)
+	Outcome        string            `json:"outcome"` // ""|dispatch_error
+	FilesPred      int               `json:"files_pred"`
+	Tasks          int               `json:"tasks"`
+	Fanin          int               `json:"fanin"`
+	ThinkingTokens int               `json:"thinking_tokens"`
+	Runtime        string            `json:"runtime,omitempty"` // codex|claude|unknown, set by the CLI from env
 }
 
 // Summary is what `zenify route-log` prints.
 type Summary struct {
-	Total            int                       `json:"total"`
-	BySite           map[string]int            `json:"by_site"`
-	ModelBySite      map[string]map[string]int `json:"model_by_site"`
-	StrongSent       int                       `json:"strong_sent"` // records that actually sent the strong tier (Model == Strong == fable)
-	GateFires        map[string]int            `json:"gate_fires"`
-	ArchitectDecided int                       `json:"architect_decided"` // architect records with a non-empty changed_decision
-	ArchitectChanged int                       `json:"architect_changed"` // of those, "yes"
-	ManualNoTrigger  int                       `json:"manual_no_trigger"`
-	ByRuntime        map[string]int            `json:"by_runtime"`
+	Total           int                       `json:"total"`
+	BySite          map[string]int            `json:"by_site"`
+	ModelBySite     map[string]map[string]int `json:"model_by_site"`
+	GateFires       map[string]int            `json:"gate_fires"`
+	ManualNoTrigger int                       `json:"manual_no_trigger"`
+	ByRuntime       map[string]int            `json:"by_runtime"`
 }
 
 func sanitize(s string) string {
@@ -154,17 +149,8 @@ func Summarize(recs []Record) Summary {
 			s.ModelBySite[r.Site] = map[string]int{}
 		}
 		s.ModelBySite[r.Site][r.Model]++
-		if r.Model != "none" && r.Model != "" && r.Model == r.Strong && r.Strong == "fable" {
-			s.StrongSent++
-		}
 		for _, g := range r.Gates {
 			s.GateFires[g]++
-		}
-		if r.Site == "architect" && r.ChangedDecision != "" {
-			s.ArchitectDecided++
-			if r.ChangedDecision == "yes" {
-				s.ArchitectChanged++
-			}
 		}
 		if r.Site == "manual" && r.Trigger == "" {
 			s.ManualNoTrigger++

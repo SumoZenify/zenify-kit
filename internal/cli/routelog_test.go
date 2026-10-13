@@ -70,8 +70,8 @@ func TestRunRouteLogShow_EmptyAndSummary(t *testing.T) {
 		t.Fatalf("empty: %q", out.String())
 	}
 	for _, r := range []routelog.Record{
-		{TS: "2026-09-21T01:00:00Z", Site: "architect", Model: "fable", Strong: "fable", Gates: []string{"SHARED"}, ChangedDecision: "yes"},
-		{TS: "2026-09-21T02:00:00Z", Site: "manual", Model: "opus", Strong: "opus", Trigger: "manual"},
+		{TS: "2026-09-21T01:00:00Z", Site: "architect", Model: "fable", Gates: []string{"SHARED"}},
+		{TS: "2026-09-21T02:00:00Z", Site: "manual", Model: "opus", Trigger: "manual"},
 	} {
 		if _, err := routelog.WriteRecord(dir, r); err != nil {
 			t.Fatal(err)
@@ -81,9 +81,14 @@ func TestRunRouteLogShow_EmptyAndSummary(t *testing.T) {
 	if err := runRouteLogShow(&out, &errb, false, "", dirFn); err != nil {
 		t.Fatal(err)
 	}
-	for _, w := range []string{"routes", "architect", "manual", "changed_decision", "SHARED"} {
+	for _, w := range []string{"routes", "architect", "manual", "SHARED"} {
 		if !strings.Contains(out.String(), w) {
 			t.Errorf("summary missing %q:\n%s", w, out.String())
+		}
+	}
+	for _, w := range []string{"strong model sent", "architect changed", "changed_decision"} {
+		if strings.Contains(out.String(), w) {
+			t.Errorf("summary must not contain %q:\n%s", w, out.String())
 		}
 	}
 	out.Reset()

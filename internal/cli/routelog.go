@@ -65,7 +65,7 @@ func runRouteLogRecordPlan(planPath string, fanin int, stderr io.Writer, dirFn f
 	}
 	r := routelog.Record{
 		TS: time.Now().UTC().Format(time.RFC3339), Repo: repo, Branch: branch, Site: "plan-metrics",
-		Model: "none", Strong: strongFromEnv(), Tasks: tasks, FilesPred: files, Fanin: fanin,
+		Model: "none", Tasks: tasks, FilesPred: files, Fanin: fanin,
 	}
 	dir, err := dirFn()
 	if err != nil {
@@ -87,14 +87,6 @@ func runtimeFromEnv(getenv func(string) string) string {
 		return "claude"
 	}
 	return "unknown"
-}
-
-func strongFromEnv() string {
-	switch v := os.Getenv("ZNF_STRONG_MODEL"); v {
-	case "fable", "opus":
-		return v
-	}
-	return "opus"
 }
 
 func gitOut(args ...string) ([]byte, error) {
@@ -157,7 +149,6 @@ func runRouteLogShow(stdout, stderr io.Writer, asJSON bool, since string, dirFn 
 		}
 		f.Line(ui.StatusInfo, site, fmt.Sprintf("%d (%s)", s.BySite[site], strings.Join(parts, " ")))
 	}
-	f.Line(ui.StatusInfo, "strong model sent", fmt.Sprintf("%d", s.StrongSent))
 	gates := make([]string, 0, len(s.GateFires))
 	for k := range s.GateFires {
 		gates = append(gates, k)
@@ -168,13 +159,6 @@ func runRouteLogShow(stdout, stderr io.Writer, asJSON bool, since string, dirFn 
 		gp = append(gp, fmt.Sprintf("%s(%d)", g, s.GateFires[g]))
 	}
 	f.Line(ui.StatusInfo, "gates fired", strings.Join(gp, " "))
-	if s.ArchitectDecided > 0 {
-		st := ui.StatusOK
-		if s.ArchitectChanged*100 < 40*s.ArchitectDecided {
-			st = ui.StatusWarn
-		}
-		f.Line(st, "architect changed_decision", fmt.Sprintf("%d/%d (%.0f%%)", s.ArchitectChanged, s.ArchitectDecided, float64(s.ArchitectChanged)*100/float64(s.ArchitectDecided)))
-	}
 	mt := ui.StatusOK
 	if s.ManualNoTrigger > 0 {
 		mt = ui.StatusWarn
@@ -198,7 +182,7 @@ func newRouteLogCmd() *cobra.Command {
 	var since string
 	c := &cobra.Command{
 		Use:   "route-log",
-		Short: "Xem log calibrate của select-route: model đã gửi theo site, gate nào fire, architect đổi quyết định bao nhiêu (--json in record)", //znf:allow-lang
+		Short: "Xem record routing model do skill ghi (số liệu plan từ znf:analyze)", //znf:allow-lang
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runRouteLogShow(cmd.OutOrStdout(), cmd.ErrOrStderr(), asJSON, since, defaultRouteLogDir)

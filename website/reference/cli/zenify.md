@@ -46,7 +46,7 @@ Gõ `zenify <lệnh> --help` để xem cú pháp của từng lệnh. Lệnh có
 - [zenify release-report](./zenify_release-report): Sinh báo cáo rủi ro cho một release từ lịch sử git của mọi repo trong workspace.
 - [zenify review-log](./zenify_review-log): Xem tổng hợp các lần review của `/znf:review` đã ghi lại trên máy bạn.
 - [zenify reviewer](./zenify_reviewer): In ra engine review mà kit sẽ dùng ở phiên này, agent hoặc codex, kèm lý do khi rơi về agent.
-- [zenify route-log](./zenify_route-log): Xem log calibrate của cơ chế chọn model — mỗi lần `select-route` chạy ghi một record, lệnh này đếm theo site, model đã gửi, gate đã fire và tỉ lệ architect đổi quyết định.
+- [zenify route-log](./zenify_route-log): Show model-routing records written by skills (plan metrics from znf:analyze), counted by site, model and gate.
 - [zenify rules](./zenify_rules): Nhóm lệnh kiểm tra rule team, hiện có lệnh lint ngôn ngữ cho file agent đọc.
 - [zenify secret-scan](./zenify_secret-scan): Quét một cây thư mục để tìm secret bị lộ, dùng trong CI và kiểm tra tay trước khi push.
 - [zenify skills](./zenify_skills): Nhóm lệnh quản lý plugin skill znf và bộ coding skill theo repo.
