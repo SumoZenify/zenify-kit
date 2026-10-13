@@ -15,7 +15,7 @@ Bản trước `v0.22.0`: xem [GitHub Releases](https://github.com/ZenifyAIConta
 - Cách chọn model đổi sang quy tắc viết sẵn trong skill: implementer lấy model từ dòng `**Model:**` của task trong plan (mặc định `sonnet`, test fail lần 2 lên `opus`), investigator của `/znf:fix` theo vòng (`sonnet`, `opus`, rồi `opus` ở effort `xhigh`), review theo tier. Script `select-route` và skill `/znf:advisor` đã bị xoá; advisor native của Claude Code do từng người tự bật. Xem [Chọn model](/concepts/model-routing).
 - Agent `architect` được thay bằng `spec-reviewer` (`model: fable`, máy không có Fable tự hạ về model của phiên): brainstorming dispatch một lần sau bước tự soát spec, báo requirement thiếu, FR/SC không kiểm được, mâu thuẫn và tên chưa ground. Memo thiết kế giờ viết inline.
 - `zenify up` và hook SessionStart xoá `ZNF_STRONG_MODEL` khỏi `~/.claude/settings.json` (mọi giá trị); `zenify rules lint` không còn cấm tên model mạnh trong `.md` của plugin.
-- `zenify cost` không còn crash khi gặp session lỗi hoặc không đọc được: bỏ qua session đó và in dòng `skipped`.
+- `zenify cost` không còn crash khi một file transcript không còn tồn tại (ví dụ symlink hỏng); số file bỏ qua được in ra.
 - Knowledge hygiene (PR #154): lệnh `zenify docs sweep` (mặc định dry-run, `--dir` để chỉ rõ store) dọn plan đã build, handoff quá hạn và reference không còn link; `wt sweep` gọi nó sau khi dọn worktree đã merge. Hook `write-guard` (Claude) chặn ghi sai chỗ theo quy ước thư mục; `zenify doctor` thêm check `workspace-root` và `memory-index`. Research nháp ghi vào `docs/research`, ghi chú phiên ở lại `docs/notes`. Xem [Bố cục workspace](/concepts/workspace-layout).
 - `/znf:ship` rút gọn thân PR: bỏ phần SC đã sửa và sổ deferred (PR #155).
 

@@ -22,7 +22,7 @@ Model mạnh điều phối, model rẻ làm phần song song — một agent t�
 | Vòng lặp chính (`cook` bước 0–5: brainstorm → analyze) | Session (Opus) | Quyết định thiết kế, chạy ở vòng lặp chính |
 | `cook` bước 6 implementer (SDD) | Giá trị dòng `**Model:**` của task trong plan (`sonnet` hoặc `opus`); không có dòng thì `sonnet`. Cùng một test fail lần 2 → `opus` kèm brief lỗi trên đĩa; lần 3 → dừng implement, chạy investigator của `/fix` ở vòng 3 | Plan ghi quyết định, implementer luôn cần phán đoán; task cần phán đoán thiết kế ghi `opus` |
 | `fix` investigator | Vòng 1 `sonnet`; vòng 2 `opus`; vòng 3 trở lên `opus` ở effort `xhigh`, kèm log, giả thuyết đã loại và diff đã thử | Chẩn đoán đầu sai thì lên tier, context mới |
-| `review` T1 | `sonnet` | Diff nhỏ dùng model rẻ; không xuống haiku — review haiku *grade tệ hơn* |
+| `review` T1 | `sonnet` khi diff dưới 50 LOC, `mid` ở các diff còn lại | Diff nhỏ dùng model rẻ; không xuống haiku — review haiku *grade tệ hơn* |
 | `review` T2 fan-out | `sonnet`; `contracts` lên `opus` khi chạm contract chia sẻ | Sâu hơn ở phần rủi ro |
 | `review` T3 | `security`+`contracts` `opus`; `bugs`/`perf`/`types` `sonnet`; verify `opus` | Blast radius auth/contract cần model mạnh |
 | Agent `code-reviewer`, `scout`, `ui-verifier`, `researcher` | `sonnet` (frontmatter) | Sàn sonnet cho subagent từ v0.22.0 |
@@ -34,7 +34,7 @@ Model mạnh điều phối, model rẻ làm phần song song — một agent t�
 
 Agent `spec-reviewer` được brainstorming dispatch **một lần**, ở tier architectural, sau bước tự soát spec và trước khi bạn duyệt. Nó đọc spec trong context mới, đối chiếu với yêu cầu gốc của bạn, và chỉ báo: requirement thiếu hoặc mâu thuẫn, FR/SC không kiểm được, mâu thuẫn nội bộ, tên hoặc hợp đồng không có nguồn ground. Finding mức HIGH được đưa vào lời xin duyệt spec. Xem [agent `spec-reviewer`](/reference/agents/spec-reviewer).
 
-Frontmatter ghim `model: fable`. Máy không có Fable (ví dụ account Pro) **tự hạ về model của phiên**, không lỗi. Agent in dòng đầu `model: <tên model nó đang chạy>` và brainstorming in lại `spec review ran on: …`, nên bạn luôn thấy spec được soát bằng model nào.
+Frontmatter ghim `model: fable`. Máy không có Fable **tự hạ về model của phiên**, không lỗi. Agent in dòng đầu `model: <tên model nó đang chạy>` và brainstorming in lại `spec review ran on: …`, nên bạn luôn thấy spec được soát bằng model nào.
 
 ## Advisor native
 
@@ -55,7 +55,7 @@ Lưu ý:
 
 ## Route-log
 
-[`zenify route-log`](/reference/cli/zenify_route-log) (`--since 30d`, `--json`) đọc các record skill ghi vào `.znf/route-log/` của checkout chính, ví dụ số liệu plan từ `zenify analyze`. Ghi best-effort, không bao giờ chặn. `zenify cost` in thêm token thinking của session chính và các mức effort đã gặp; session lỗi hoặc không đọc được được bỏ qua và in dòng `skipped`, không làm lệnh crash.
+[`zenify route-log`](/reference/cli/zenify_route-log) (`--since 30d`, `--json`) đọc các record skill ghi vào `.znf/route-log/` của checkout chính, ví dụ số liệu plan từ `zenify analyze`. Ghi best-effort, không bao giờ chặn. `zenify cost` in thêm token thinking của session chính và các mức effort đã gặp; file transcript không còn tồn tại (ví dụ symlink hỏng) được bỏ qua và số file bỏ qua được in ra, không làm lệnh crash.
 
 ## Đổi model
 
