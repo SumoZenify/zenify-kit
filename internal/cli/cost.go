@@ -122,6 +122,11 @@ func short(id string) string {
 func renderCost(w io.Writer, r *cost.Report, bySkill bool) {
 	u := ui.New(w)
 	u.Header("zenify cost")
+	defer func() {
+		if r.Skipped > 0 {
+			u.Note(fmt.Sprintf("skipped %d unreadable transcript file(s)", r.Skipped))
+		}
+	}()
 	window := "toàn bộ" //znf:allow-lang
 	if !r.Since.IsZero() {
 		window = "từ " + r.Since.UTC().Format("2006-01-02") //znf:allow-lang
