@@ -13,11 +13,12 @@ Dùng lệnh này trước khi viết code chạm một collection, bảng hoặ
 ## Lệnh
 
 ```bash
-zenify db-read [--profile <name>] <collections|tables|doc|count|eval|sql> [arg]
+zenify db-read [--profile <name>] <setup|collections|tables|doc|count|eval|sql> [arg]
 ```
 
 | Lệnh con | Kết quả |
 |---|---|
+| `setup` | Mở wizard trong terminal để cấu hình một profile |
 | `collections [chuỗi]` | Liệt kê collection Mongo, lọc theo chuỗi con nếu có |
 | `tables` | Liệt kê bảng MySQL |
 | `doc <collection>` | In một document thật để xem tên field |
@@ -26,6 +27,8 @@ zenify db-read [--profile <name>] <collections|tables|doc|count|eval|sql> [arg]
 | `sql '<câu lệnh>'` | Chạy một câu SQL chỉ đọc |
 
 ```bash
+zenify db-read setup
+zenify db-read --profile local setup
 zenify db-read collections chatbot
 zenify db-read --profile develop collections chatbot
 zenify db-read --profile production doc chat_rooms
@@ -38,6 +41,8 @@ zenify db-read sql 'DESCRIBE agents'
 Profile mặc định là `staging`. Có thể chọn `local`, `develop`, `custom` hoặc `production` bằng `--profile`; profile thiếu cấu hình sẽ dừng và không tự fallback. Git branch không tự đổi profile.
 
 Metadata profile nằm trong `.zenify/db-read.json` ở workspace và chỉ chứa tên biến môi trường cùng tên database. Credential thật nằm trong khối `env` của `.claude/settings.local.json` hoặc environment của process. Mỗi lần chạy, lệnh in profile, engine và database đã chọn nhưng không in host hoặc credential.
+
+`zenify db-read setup` cho chọn `staging`, `local`, `develop`, `custom` hoặc `production`, chọn MongoDB/MySQL, rồi nhập toàn bộ tham số ngay trong terminal. Dùng `--profile <name>` để bỏ qua bước chọn profile. URI Mongo và password MySQL dùng ô masked. Khi chạy lại, để trống credential sẽ giữ giá trị hiện có; credential chưa có giá trị thì setup dừng trước khi thay đổi file. Profile `production` yêu cầu xác nhận riêng và phải dùng tài khoản chỉ đọc.
 
 `eval` và `sql` chặn các động từ ghi phổ biến để tránh thao tác nhầm. Mỗi profile phải dùng tài khoản chỉ có quyền đọc; điều này bắt buộc với `production`.
 
@@ -64,6 +69,7 @@ Metadata profile nằm trong `.zenify/db-read.json` ở workspace và chỉ ch�
 ## Lưu ý
 
 - Lệnh chỉ chạy được trong workspace có `.zenify/db-read.json`.
+- Lần đầu cấu hình có thể chạy `zenify db-read setup`; lệnh tạo `.zenify/db-read.json` và cập nhật `.claude/settings.local.json` theo cách atomic.
 - Tên collection trong database luôn ở số nhiều. Tên số ít bạn thấy trong code là tên model, không phải tên collection thật. Luôn liệt kê bằng `zenify db-read collections` trước khi dùng một tên, đừng lấy tên từ tài liệu hay từ một document mẫu.
 - Khi kết nối lỗi, lệnh yêu cầu kiểm tra credential của profile và quyền truy cập mạng.
 - `/znf:ground` dùng lệnh này để xác minh field trước khi code chạm vào nó. `/znf:ship` cũng đọc dữ liệu thật qua đường này khi verify một thay đổi chạm DB.

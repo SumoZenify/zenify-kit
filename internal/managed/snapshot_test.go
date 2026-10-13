@@ -155,4 +155,29 @@ func TestRestore_PreservesFileMode(t *testing.T) {
 	}
 }
 
+func TestWriteFileAtomicModeNarrowsExistingFile(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "settings.local.json")
+	if err := os.WriteFile(target, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteFileAtomicMode(target, []byte("secret"), 0o600); err != nil {
+		t.Fatalf("WriteFileAtomicMode: %v", err)
+	}
+	info, err := os.Stat(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode = %o, want 600", info.Mode().Perm())
+	}
+	data, err := os.ReadFile(target) //nolint:gosec // path is derived from t.TempDir
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "secret" {
+		t.Fatalf("content = %q, want secret", data)
+	}
+}
+
 func snapRoot(dir string) string { return filepath.Join(dir, ".snap") }

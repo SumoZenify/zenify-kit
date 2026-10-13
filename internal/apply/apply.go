@@ -531,7 +531,7 @@ func ensureSettingsSkeleton(repoDir string, owned *managed.Manifest, secretKeys 
 	if err != nil {
 		return "", err
 	}
-	if err := managed.WriteFileAtomic(settingsPath, append(skeleton, '\n')); err != nil {
+	if err := managed.WriteFileAtomicMode(settingsPath, append(skeleton, '\n'), 0o600); err != nil {
 		return "", err
 	}
 	if err := owned.Record(settingsPath); err != nil {
@@ -582,7 +582,7 @@ func mergeSettingsKeys(settingsPath string, raw []byte, secretKeys []string) (st
 	if err := enc.Encode(root); err != nil { // Encode appends a trailing newline
 		return "", err
 	}
-	if err := managed.WriteFileAtomic(settingsPath, buf.Bytes()); err != nil {
+	if err := managed.WriteFileAtomicMode(settingsPath, buf.Bytes(), 0o600); err != nil {
 		return "", err
 	}
 	return settingsPath, nil

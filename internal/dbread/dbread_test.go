@@ -218,6 +218,168 @@ func TestRun_MissingProfileDoesNotFallBack(t *testing.T) {
 	}
 }
 
+func TestSaveProfileSeparatesMetadataAndCredentials(t *testing.T) {
+	root := t.TempDir()
+	settingsPath := filepath.Join(root, ".claude", "settings.local.json")
+	secretURI := "mongodb://user:password@example.invalid/db?retryWrites=true&w=majority"
+	secretPassword := "mysql-test-password"
+	input := SetupInput{
+		Name: "develop",
+		Profile: Profile{
+			Mongo: &MongoProfile{URIEnv: "MONGO_URL_DEVELOP", Database: "app_develop"},
+			MySQL: &MySQLProfile{
+				HostEnv: "MYSQL_HOST_DEVELOP", PortEnv: "MYSQL_PORT_DEVELOP",
+				UserEnv: "MYSQL_USER_DEVELOP", PasswordEnv: "MYSQL_PASSWORD_DEVELOP",
+				Database: "acd_develop",
+			},
+		},
+		Credentials: map[string]string{
+			"MONGO_URL_DEVELOP":      secretURI,
+			"MYSQL_HOST_DEVELOP":     "mysql.example.invalid",
+			"MYSQL_PORT_DEVELOP":     "3307",
+			"MYSQL_USER_DEVELOP":     "readonly",
+			"MYSQL_PASSWORD_DEVELOP": secretPassword,
+			"UNRELATED_SECRET":       "must-not-be-written",
+		},
+	}
+
+	configPath, err := SaveProfile(settingsPath, input)
+	if err != nil {
+		t.Fatalf("SaveProfile: %v", err)
+	}
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(configData), secretURI) || strings.Contains(string(configData), secretPassword) {
+		t.Fatal("profile metadata contains a credential value")
+	}
+	var cfg ProfileConfig
+	if err := json.Unmarshal(configData, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.Profiles["develop"].Mongo.Database; got != "app_develop" {
+		t.Fatalf("Mongo database = %q", got)
+	}
+
+	settingsData, err := os.ReadFile(settingsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var settings struct {
+		Env map[string]string `json:"env"`
+	}
+	if err := json.Unmarshal(settingsData, &settings); err != nil {
+		t.Fatal(err)
+	}
+	if settings.Env["MONGO_URL_DEVELOP"] != secretURI || settings.Env["MYSQL_PASSWORD_DEVELOP"] != secretPassword {
+		t.Fatal("settings did not contain the entered credentials")
+	}
+	if _, ok := settings.Env["UNRELATED_SECRET"]; ok {
+		t.Fatal("SaveProfile wrote a credential key not declared by the profile")
+	}
+	info, err := os.Stat(settingsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("settings mode = %o, want 600", info.Mode().Perm())
+	}
+}
+
+func TestSaveProfilePreservesExistingProfilesSettingsAndCredentials(t *testing.T) {
+	root := t.TempDir()
+	settingsPath := filepath.Join(root, ".claude", "settings.local.json")
+	configPath := filepath.Join(root, ".zenify", "db-read.json")
+	if err := os.MkdirAll(filepath.Dir(settingsPath), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	existingSecret := "mongodb://existing.invalid/?x=1&y=2"
+	settingsData, _ := json.Marshal(map[string]any{
+		"permissions": map[string]any{"allow": []string{"Bash(git status)"}},
+		"env":         map[string]any{"MONGO_URL_LOCAL": existingSecret, "OTHER": "keep"},
+	})
+	if err := os.WriteFile(settingsPath, settingsData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	existingConfig := ProfileConfig{Profiles: map[string]Profile{
+		"staging": {Mongo: &MongoProfile{URIEnv: "MONGO_URL", Database: "app_staging"}},
+	}}
+	configData, _ := json.Marshal(existingConfig)
+	if err := os.WriteFile(configPath, configData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := SaveProfile(settingsPath, SetupInput{
+		Name:        "local",
+		Profile:     Profile{Mongo: &MongoProfile{URIEnv: "MONGO_URL_LOCAL", Database: "app_local"}},
+		Credentials: map[string]string{"MONGO_URL_LOCAL": ""},
+	})
+	if err != nil {
+		t.Fatalf("SaveProfile: %v", err)
+	}
+
+	var gotCfg ProfileConfig
+	data, _ := os.ReadFile(configPath)
+	if err := json.Unmarshal(data, &gotCfg); err != nil {
+		t.Fatal(err)
+	}
+	if gotCfg.Profiles["staging"].Mongo == nil || gotCfg.Profiles["local"].Mongo == nil {
+		t.Fatalf("profiles = %#v, want staging and local", gotCfg.Profiles)
+	}
+	var gotSettings map[string]any
+	data, _ = os.ReadFile(settingsPath)
+	if err := json.Unmarshal(data, &gotSettings); err != nil {
+		t.Fatal(err)
+	}
+	env := gotSettings["env"].(map[string]any)
+	if env["MONGO_URL_LOCAL"] != existingSecret || env["OTHER"] != "keep" || gotSettings["permissions"] == nil {
+		t.Fatalf("settings were not preserved: %#v", gotSettings)
+	}
+}
+
+func TestSaveProfileMissingCredentialDoesNotWrite(t *testing.T) {
+	root := t.TempDir()
+	settingsPath := filepath.Join(root, ".claude", "settings.local.json")
+	_, err := SaveProfile(settingsPath, SetupInput{
+		Name:    "production",
+		Profile: Profile{Mongo: &MongoProfile{URIEnv: "MONGO_URL_PRODUCTION", Database: "app_production"}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "MONGO_URL_PRODUCTION") {
+		t.Fatalf("err = %v, want missing env key", err)
+	}
+	if _, statErr := os.Stat(settingsPath); !os.IsNotExist(statErr) {
+		t.Fatalf("settings file was written after rejected setup: %v", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(root, ".zenify", "db-read.json")); !os.IsNotExist(statErr) {
+		t.Fatalf("config file was written after rejected setup: %v", statErr)
+	}
+}
+
+func TestSaveProfileAllowsMySQLDefaultPort(t *testing.T) {
+	root := t.TempDir()
+	settingsPath := filepath.Join(root, ".claude", "settings.local.json")
+	_, err := SaveProfile(settingsPath, SetupInput{
+		Name: "custom",
+		Profile: Profile{MySQL: &MySQLProfile{
+			HostEnv: "MYSQL_HOST_CUSTOM", PortEnv: "MYSQL_PORT_CUSTOM",
+			UserEnv: "MYSQL_USER_CUSTOM", PasswordEnv: "MYSQL_PASSWORD_CUSTOM",
+			Database: "app_custom",
+		}},
+		Credentials: map[string]string{
+			"MYSQL_HOST_CUSTOM":     "mysql.example.invalid",
+			"MYSQL_USER_CUSTOM":     "readonly",
+			"MYSQL_PASSWORD_CUSTOM": "fake-password",
+		},
+	})
+	if err != nil {
+		t.Fatalf("SaveProfile with default MySQL port: %v", err)
+	}
+}
+
 func TestRun_DocEscapesCollectionName(t *testing.T) {
 	o, _, _ := baseOptions(t, fakeEnv())
 	o.Cmd = "doc"

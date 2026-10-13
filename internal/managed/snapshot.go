@@ -106,14 +106,24 @@ func Restore(snapDir string) error {
 // 0600, which would otherwise silently narrow permissions on every write);
 // if the destination does not yet exist, it falls back to 0o644.
 func WriteFileAtomic(path string, data []byte) error {
-	dir := filepath.Dir(path)
-
 	mode := os.FileMode(0o644)
 	if info, err := os.Stat(path); err == nil {
 		mode = info.Mode().Perm()
 	} else if !os.IsNotExist(err) {
 		return err
 	}
+	return writeFileAtomicMode(path, data, mode)
+}
+
+// WriteFileAtomicMode writes data atomically with an explicit destination
+// mode. The temporary file starts at 0600 and receives mode before rename, so
+// a secret-bearing destination is never published with broader permissions.
+func WriteFileAtomicMode(path string, data []byte, mode os.FileMode) error {
+	return writeFileAtomicMode(path, data, mode.Perm())
+}
+
+func writeFileAtomicMode(path string, data []byte, mode os.FileMode) error {
+	dir := filepath.Dir(path)
 
 	tmp, err := os.CreateTemp(dir, ".zenify-restore-*")
 	if err != nil {

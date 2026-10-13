@@ -123,5 +123,5 @@ func writeSettingsAtomic(path string, root map[string]any) error {
 	if err := enc.Encode(root); err != nil {
 		return err
 	}
-	return managed.WriteFileAtomic(path, buf.Bytes())
+	return managed.WriteFileAtomicMode(path, buf.Bytes(), 0o600)
 }

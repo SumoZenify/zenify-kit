@@ -2,25 +2,52 @@ package cli
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/ZenifyAIContactCenter/zenify-kit/internal/dbread"
+	"github.com/ZenifyAIContactCenter/zenify-kit/internal/exitcode"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
 
-// newDBReadCmd builds `zenify db-read <collections|tables|doc|count|eval|sql> [arg]`
+// newDBReadCmd builds `zenify db-read <setup|collections|tables|doc|count|eval|sql> [arg]`
 // — the portable port of ~/.local/bin/db_read (FR-033).
 func newDBReadCmd() *cobra.Command {
+	return newDBReadCmdWithSetup(promptDBReadSetup)
+}
+
+func newDBReadCmdWithSetup(prompt dbReadSetupPrompt) *cobra.Command {
 	profile := "staging"
 	cmd := &cobra.Command{
-		Use:           "db-read <collections|tables|doc|count|eval|sql> [arg]",
+		Use:           "db-read <setup|collections|tables|doc|count|eval|sql> [arg]",
 		Short:         "Đọc database dùng chung ở chế độ chỉ đọc, không bao giờ ghi và không in secret", //znf:allow-lang
 		Args:          cobra.RangeArgs(1, 2),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if args[0] == "setup" {
+				if len(args) != 1 {
+					return exitcode.New(exitcode.BadArgs, errors.New("zenify db-read setup takes no argument"))
+				}
+				input, err := prompt(profile, !cmd.Flags().Changed("profile"))
+				if err != nil {
+					if errors.Is(err, huh.ErrUserAborted) {
+						return exitcode.New(exitcode.Cancelled, err)
+					}
+					return exitcode.New(exitcode.BadArgs, err)
+				}
+				settingsPath := workspaceSettingsPath()
+				configPath, err := dbread.SaveProfile(settingsPath, input)
+				if err != nil {
+					return err
+				}
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "db-read profile %q saved\nmetadata: %s\ncredentials: %s\n", input.Name, configPath, settingsPath)
+				return nil
+			}
 			arg := ""
 			if len(args) > 1 {
 				arg = args[1]

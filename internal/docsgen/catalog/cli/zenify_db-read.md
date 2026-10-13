@@ -7,10 +7,11 @@ Trước khi viết code chạm một collection, field hoặc bảng. Tên coll
 
 ## Kết quả
 
-Sáu lệnh con:
+Bảy lệnh con:
 
 | Lệnh con | Kết quả |
 |---|---|
+| `setup` | Mở wizard trong terminal để cấu hình một profile |
 | `collections [chuỗi]` | Liệt kê collection Mongo, lọc theo chuỗi con nếu có |
 | `tables` | Liệt kê bảng MySQL |
 | `doc <collection>` | In một document thật để xem tên field |
@@ -21,6 +22,8 @@ Sáu lệnh con:
 Lệnh chọn profile bằng `--profile`. Profile mặc định là `staging`; các profile khuyến nghị là `local`, `develop`, `custom` và `production`. Profile không tồn tại hoặc thiếu credential sẽ dừng, không tự chuyển sang `staging`.
 
 Metadata profile nằm trong `.zenify/db-read.json` của workspace. File này chỉ chứa tên biến môi trường và tên database; credential tương ứng nằm trong khối `env` của `.claude/settings.local.json` hoặc trong environment của process.
+
+Chạy `zenify db-read setup` để chọn profile và nhập các tham số trong terminal. Có thể cố định profile trước khi mở wizard bằng `--profile`. URI Mongo và password MySQL được nhập qua ô masked. Khi chạy lại setup, để trống một credential sẽ giữ giá trị hiện có; nếu key đó chưa có giá trị thì setup dừng trước khi ghi file. Profile `production` luôn yêu cầu xác nhận trước khi lưu.
 
 ```json
 {
@@ -47,6 +50,8 @@ Metadata profile nằm trong `.zenify/db-read.json` của workspace. File này c
 ## Ví dụ
 
 ```bash
+zenify db-read setup
+zenify db-read --profile local setup
 zenify db-read collections chatbot
 zenify db-read --profile develop collections chatbot
 zenify db-read --profile production doc chat_rooms
