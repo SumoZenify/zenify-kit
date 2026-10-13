@@ -72,7 +72,7 @@ func agentTOML(name string, fm agentMeta, body string) (string, error) {
 		return "", fmt.Errorf("agent %s: body contains '''", name)
 	}
 	effort := "medium"
-	if name == "architect" {
+	if name == "spec-reviewer" {
 		effort = "high"
 	}
 	esc := strings.NewReplacer(`\`, `\\`, `"`, `\"`)

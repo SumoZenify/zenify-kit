@@ -14,11 +14,12 @@ digraph brainstorming {
     "Explore project context" [shape=box];
     "Ask clarifying questions" [shape=box];
     "Research check" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
+    "Design memo (2-3 approaches, gates)" [shape=box];
     "Present design sections" [shape=box];
     "User approves design?" [shape=diamond];
     "Write design doc" [shape=box];
     "Spec self-review\n(fix inline)" [shape=box];
+    "Spec review\n(znf:spec-reviewer, never blocks)" [shape=box];
     "User reviews spec?" [shape=diamond];
     "Invoke writing-plans skill" [shape=doublecircle];
     "Hidden complexity? Upgrade path" [shape=box];
@@ -34,13 +35,14 @@ digraph brainstorming {
     "Hidden complexity? Upgrade path" -> "Classify: spike / bounded / architectural";
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Research check";
-    "Research check" -> "Propose 2-3 approaches" [label="checklist: 0 or 1+ true → /znf:research first"];
-    "Propose 2-3 approaches" -> "Present design sections";
+    "Research check" -> "Design memo (2-3 approaches, gates)" [label="checklist: 0 or 1+ true → /znf:research first"];
+    "Design memo (2-3 approaches, gates)" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
     "User approves design?" -> "Write design doc" [label="yes"];
     "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
+    "Spec self-review\n(fix inline)" -> "Spec review\n(znf:spec-reviewer, never blocks)";
+    "Spec review\n(znf:spec-reviewer, never blocks)" -> "User reviews spec?";
     "User reviews spec?" -> "Write design doc" [label="changes requested"];
     "User reviews spec?" -> "Invoke writing-plans skill" [label="approved"];
 }

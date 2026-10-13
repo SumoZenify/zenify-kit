@@ -27,7 +27,7 @@ func TestSyncCodexAgentsMapsFrontmatter(t *testing.T) {
 	if len(res.Written) != 5 {
 		t.Fatalf("written = %v, want 5", res.Written)
 	}
-	for _, n := range []string{"scout", "code-reviewer", "ui-verifier", "researcher", "architect"} {
+	for _, n := range []string{"scout", "code-reviewer", "ui-verifier", "researcher", "spec-reviewer"} {
 		s := readAgent(t, home, n)
 		if strings.SplitN(s, "\n", 2)[0] != CodexAgentMarker {
 			t.Errorf("%s: first line is not marker", n)
@@ -52,9 +52,9 @@ func TestSyncCodexAgentsMapsFrontmatter(t *testing.T) {
 	if !strings.Contains(readAgent(t, home, "code-reviewer"), `sandbox_mode = "read-only"`) {
 		t.Error("code-reviewer missing read-only")
 	}
-	a := readAgent(t, home, "architect")
+	a := readAgent(t, home, "spec-reviewer")
 	if !strings.Contains(a, `model_reasoning_effort = "high"`) || strings.Contains(a, "sandbox_mode") {
-		t.Error("architect mapping wrong")
+		t.Error("spec-reviewer mapping wrong")
 	}
 	// Codex 0.155.1 rejects mcp_servers as a list ("expected a map"); it must not be emitted.
 	if strings.Contains(readAgent(t, home, "ui-verifier"), "mcp_servers") {

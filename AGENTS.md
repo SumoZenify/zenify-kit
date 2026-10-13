@@ -18,7 +18,7 @@ Codex does not load files from a parent directory outside the git root, so read 
 ## 3. Notes when running on Codex
 
 - Invoke a kit skill with the `$znf:` prefix plus the skill name, e.g. `$znf:fix`, `$znf:ship`. The argument is the text after the skill name in the same message; Codex has no `$ARGUMENTS`.
-- Subagents are created with Codex's subagent tool, using the same agent names as the kit: `scout`, `code-reviewer`, `ui-verifier`, `researcher`, `architect`.
+- Subagents are created with Codex's subagent tool, using the same agent names as the kit: `scout`, `code-reviewer`, `ui-verifier`, `researcher`, `spec-reviewer`.
 - Accepted gaps compared to Claude Code:
   - No read-guard hook: read a file before editing it; never edit a file not read in this session.
   - No Workflow tool: a skill step that needs Workflow runs sequentially, or is split across subagents.
